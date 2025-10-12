@@ -1,0 +1,171 @@
+---
+title: Odoo - Premier modèle
+description: Odoo model
+---
+import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
+
+![Description de l'image](../../../assets/work-in-progress.jpeg)
+
+
+{/* 
+# Créer un module Odoo
+
+...
+
+---
+
+## Consignes générales
+
+Durant ce **TD**, vous allez créer un **module de gestion de tâches** dans Odoo.  
+
+La **documentation officielle d’Odoo** est à consulter si vous avez besoin de compléments.
+
+Notamment pour cette première partie : 
+
+- [Le manifest](https://www.odoo.com/documentation/17.0/developer/reference/backend/module.html#module-manifests)
+- [Modèles, attributs, méthodes](https://www.odoo.com/documentation/17.0/developer/reference/backend/orm.html)
+- [Les gestionnaires d’événements](https://www.odoo.com/documentation/17.0/developer/reference/backend/actions.html)
+- [Les vues](https://www.odoo.com/documentation/17.0/developer/reference/user_interface/view_records.html)
+
+---
+
+## Création du module de gestion de tâches
+
+Vous allez créer une application intitulée `todo_app`.  
+Elle s’inspire du livre :
+
+> *Daniel Reis, Odoo 11 Development Essentials - Third Edition, Packt, March 2018.*
+
+### 1. Création du module
+
+Utilisez la commande `scaffold` pour générer la structure du module :
+
+```bash
+odoo-bin scaffold todo_app ./addons
+```
+
+Ouvrez ensuite le fichier `__manifest__.py` et **complétez la description** de votre application.
+
+---
+
+### 2. Installation du module
+
+Installez l’application `todo_app` dans Odoo.  
+Assurez-vous que votre module apparaît dans la liste des applications.  
+⚠️ *Vérifiez le filtre « Application » dans le champ de recherche.*
+
+Pour que le module soit reconnu comme une application, ajoutez cette ligne dans votre `manifest` :
+
+```python
+'application': True,
+```
+
+Mettez à jour votre module et vérifiez que la recherche fonctionne avec le filtre activé.
+
+---
+
+### 3. Icône du module
+
+Pour personnaliser votre module :
+
+1. Créez le dossier `static/description`.
+2. Copiez-y une image `icon.png` fournie dans le cours.
+3. Mettez à jour votre module.
+4. Vérifiez que l’icône apparaît dans la liste des modules.
+
+---
+
+### 4. Dépôt Git
+
+Vous remettrez votre travail sur le dépôt Git créé par votre enseignant.
+
+Exemple d’adresse :
+```bash
+https://git.esi-bru.be/2022-2023/erpg56/odoo/odoo-dev-g12345.git
+```
+
+⚠️ **Seul votre dossier `extra-addons` sera versionné.**
+
+Ajoutez un fichier `.gitignore` contenant au minimum :
+```
+*.pyc
+__pycache__/
+*.log
+*.swp
+*.egg-info/
+.idea/
+.vscode/
+```
+
+---
+
+## Création du modèle `TodoTask`
+
+Dans le dossier `models` de votre module :
+
+1. Vérifiez la présence de l’import du fichier `models` dans `__init__.py`
+2. Créez le fichier `todo_task_model.py`
+3. Créez la classe `TodoTask` héritant de `models.Model`
+
+```python
+from odoo import models, fields
+
+class TodoTask(models.Model):
+    _name = "todo.task"
+    _description = "To-Do Task"
+```
+
+---
+
+### Attributs du modèle
+
+#### Attributs hérités
+- `_name`: nom technique du modèle → `"todo.task"`
+
+#### Champs de la tâche
+
+| Nom du champ      | Type     | Description                        | Défaut | Obligatoire |
+|--------------------|----------|------------------------------------|---------|--------------|
+| `name`             | Char     | Nom de la tâche                    | -       | Oui |
+| `is_done`          | Boolean  | Tâche terminée ?                   | -       | Non |
+| `active`           | Boolean  | Tâche affichée ?                   | True    | Non |
+| `date_deadline`    | Date     | Date limite                        | -       | Non |
+
+#### Relations
+
+| Nom du champ | Type | Relation | Description |
+|---------------|------|-----------|--------------|
+| `user_id` | Many2one | res.users | Utilisateur responsable |
+| `team_ids` | Many2many | res.partner | Membres de l’équipe |
+
+Activez le mode développeur (`?debug=true`) et vérifiez dans :  
+`Settings > Technical > Database Structure > Models`
+
+---
+
+### Extension du modèle `res.partner`
+
+Créez `res_partner_model.py` :
+
+```python
+from odoo import models, fields
+
+class ResPartner(models.Model):
+    _inherit = "res.partner"
+    todo_ids = fields.Many2many("todo.task", string="To-do Teams")
+```
+
+Mettez à jour votre module et vérifiez dans le menu développeur.
+
+---
+
+## Ajouter les droits d’accès
+
+Modifiez le fichier `ir.model.access.csv` :
+
+```
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_todo_task_user,todo.task.user,model_todo_task,base.group_user,1,1,1,1
+```
+
+*/}

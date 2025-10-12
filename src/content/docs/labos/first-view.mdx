@@ -1,0 +1,113 @@
+---
+title: Odoo - Première vue
+description: Docs intro
+---
+import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
+
+![Description de l'image](../../../assets/work-in-progress.jpeg)
+
+
+{/* 
+
+## Création des vues
+
+Avant de créer les vues, consultez la documentation :  
+[Odoo Views Documentation](https://www.odoo.com/documentation/17.0/developer/reference/addons/views.html)
+
+Créez dans le dossier `views` :
+
+### 1. Fichier `todo_menu.xml`
+
+Ajoutez un menu permettant d’accéder à la liste et au formulaire des tâches.
+
+```xml
+<odoo>
+  <menuitem id="menu_todo_root" name="To-Do"/>
+  <record id="action_todo_task" model="ir.actions.act_window">
+    <field name="name">Tasks</field>
+    <field name="res_model">todo.task</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+  <menuitem id="menu_todo_task" name="Tasks" parent="menu_todo_root" action="action_todo_task"/>
+</odoo>
+```
+
+Ajoutez ce fichier dans la section `data` du manifest.
+
+---
+
+### 2. Fichier `todo_view.xml`
+
+Créez les vues personnalisées :
+
+#### Formulaire
+
+```xml
+<record id="view_todo_task_form" model="ir.ui.view">
+  <field name="name">todo.task.form</field>
+  <field name="model">todo.task</field>
+  <field name="arch" type="xml">
+    <form>
+      <sheet>
+        <group>
+          <field name="name"/>
+          <field name="is_done"/>
+          <field name="date_deadline"/>
+          <field name="team_ids"/>
+        </group>
+      </sheet>
+    </form>
+  </field>
+</record>
+```
+
+#### Liste
+
+```xml
+<record id="view_todo_task_tree" model="ir.ui.view">
+  <field name="name">todo.task.tree</field>
+  <field name="model">todo.task</field>
+  <field name="arch" type="xml">
+    <tree decoration-muted="is_done">
+      <field name="name"/>
+      <field name="user_id"/>
+      <field name="date_deadline"/>
+    </tree>
+  </field>
+</record>
+```
+
+#### Recherche
+
+```xml
+<record id="view_todo_task_search" model="ir.ui.view">
+  <field name="name">todo.task.search</field>
+  <field name="model">todo.task</field>
+  <field name="arch" type="xml">
+    <search>
+      <filter name="not_done" string="En cours" domain="[('is_done','=',False)]"/>
+      <filter name="done" string="Terminées" domain="[('is_done','=',True)]"/>
+    </search>
+  </field>
+</record>
+```
+
+---
+
+### 3. Extension de la vue partenaire
+
+Ajoutez dans `todo_view.xml` :
+
+```xml
+<record id="view_res_partner_form_inherit_todo" model="ir.ui.view">
+  <field name="name">res.partner.form.todo.inherit</field>
+  <field name="model">res.partner</field>
+  <field name="inherit_id" ref="base.view_partner_form"/>
+  <field name="arch" type="xml">
+    <field name="category_id" position="after">
+      <field name="todo_ids" widget="many2many_tags"/>
+    </field>
+  </field>
+</record>
+```
+*/}

@@ -1,0 +1,161 @@
+---
+title: Odoo - Découverte
+description: Odoo découverte tutoriel
+---
+import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
+
+L’objectif de cette section est de vous familiariser avec l’environnement **Odoo**, 
+son interface, et les principes communs entre ses modules.
+
+## Structure des dossiers et fichiers clés
+
+Le code source Odoo est disponible sur le dépôt officiel à l'adresse 
+[https://github.com/odoo/odoo/tree/18.0](https://github.com/odoo/odoo/tree/18.0)
+
+On peut retenir de la structure de ce dépôt les dossiers et fichiers suivants : 
+
+<FileTree>
+- odoo/
+  - odoo-bin.py # point d’entrée principal du serveur Odoo, permettant de lancer, configurer et administrer l’application depuis la ligne de commande.
+  - addons/ # Répertoire où résident les modules Odoo installables. Chaque sous-dossier représente un module.  
+  - odoo/ # Répertoire principal contenant le cœur du framework.
+     - addons/ # Sous-répertoire contenant les modules de base, comme la gestion des utilisateurs, groupes, permissions.
+  - models.py # Contient les définitions de modèles de données. Chaque classe héritée de `models.Model` représente une table de base de données.
+  - fields.py # Définit les types de champs utilisés dans les modèles.
+
+</FileTree>
+
+## Structure d'un module : **Contacts**
+
+Tous les modules Odoo (Contacts, Projets, Ventes, Facturation, ...) partagent une même structure logique.
+Cela signifie que lorsque vous installez un nouveau module, il s’appuie sur les mêmes concepts.
+
+Afin de vous familiarisez avec ces modules, commencez par découvrir le module **Contacts** 
+permettant de gérer les informations 
+sur les individus et les entreprises avec lesquels une organisation interagit. 
+Ce module sert souvent de base pour d’autres modules 
+(CRM, ventes, facturation) afin de centraliser et organiser les interactions 
+avec les **partenaires**.
+
+Le répertoire principal du module Contacts est `odoo/odoo/addons/contacts/`.
+Il contient l'ensemble des composants nécessaires à son fonctionnement, 
+organisés selon la structure standard d'un module Odoo.
+
+<FileTree>
+- odoo/odoo/addons/contacts/
+   - models/ # Contient les fichiers Python définissant les modèles de données du module.
+   - views/ # Contient les fichiers XML définissant les vues du module.
+   - security/ # Contient les fichiers XML et CSV relatifs à la sécurité du module.
+   - data/ # Contient les fichiers XML ou CSV utilisés pour l'importation de données initiales ou de démonstration dans le module.
+   - static/ # Contient les ressources statiques utilisées par le module, comme les images, les fichiers JavaScript et CSS.
+   - tests/ # Répertoire contenant les tests automatisés du module.
+   - \_\_init\_\_.py # Fichier d'initialisation du module.
+   - \_\_manifest\_\_.py # Fichier de manifeste du module. Il contient des métadonnées essentielles sur le module, telles que son nom, sa version, sa description, ses dépendances et les fichiers à charger.
+</FileTree>
+
+## Installer le module **Contacts**
+
+Connectez-vous à votre instance d'Odoo via l'url
+[http://localhost:8069](http://localhost:8069)
+
+Suivez ces étapes pour installer le module Contacts : 
+
+1. Depuis le tableau de bord, cliquez sur **Apps**  
+2. Dans la barre de recherche, tapez **Contacts**  
+3. Cliquez sur **Activate** sur la carte du module *Contacts*
+
+<Aside>
+Le module Contacts dépend d’autres modules, comme Discuss. 
+En activant Contacts, toutes ses dépendances sont automatiquement activées.
+</Aside>
+
+Ensuite, explorez le module. 
+Cliquez sur Contacts dans le menu principal pour accéder à la vue Kanban 
+et visualiser la liste des contacts existants.
+
+Ensuite afin de découvrir la vue formulaire proposée, ajoutez un nouveau contact
+en cliquant sur **New** et remplissez les champs avec des données exemples : 
+
+- **Type** : choisissez *Individu* 
+- **Name** : Alice
+- **Phone / Mobile** : ajoutez des numéros  
+- **Adresse** : ajoutez une adresse complète
+- **Email** : `alice@he2b.be` 
+
+Une fois les informations complétées, cliquez sur **Save manually**
+pour enregistrer le contact.
+Revenez ensuite à la vue Kanban en cliquant de nouveau sur le menu **Contacts** 
+et vérifiez que le nouveau contact apparaît bien dans la liste.
+
+## Installer le module : **Projet**
+
+Explorez un nouveau module afin d'identifier les similarités.
+Par exemple installer le module **Project**.
+Ce module fournit des outils pour créer des projets, organiser des tâches en listes ou kanban, 
+assigner des responsables, suivre l’avancement et collaborer avec des équipes. 
+Il s’intègre avec d’autres modules comme Contacts.
+
+Suivez ces étapes pour installer le module Projet : 
+
+1. Depuis le tableau de bord, cliquez sur **Apps**  
+2. Dans la barre de recherche, tapez **Projet**  
+3. Cliquez sur **Activate** sur la carte du module *Projet*
+
+Une fois installé, un nouvel élément **Projets** apparaît dans le menu principal.
+
+Créez un nouveau projet en : 
+
+1. Cliquant sur **New**  
+2. Donnant un nom au projet, par exemple : `Développement Odoo`  
+3. Cliquant sur **Create project** pour accéder au tableau Kanban du projet
+
+Un projet est composé de tâches que vous pouvez créer en : 
+
+1. Changeant la vue du mode **Kanban** au mode **List** via les boutons en haut à droite
+1. Cliquant sur **New**  
+2. Complétant les champs ci-dessous  :  
+   - **Nom** : *Installation Docker*  
+   - **Responsable** : choisissez un utilisateur (par défaut, l’administrateur)  
+   - **Date limite** : ajoutez une date future  
+3. Enregistrant la tâche via le bouton **Save manually**
+
+Vous pouvez revenir sur la page du projet `Développement Odoo` 
+et vérifier l’existence de cette nouvelle tâche dans la colonne
+**None** qui est repliée par défaut.
+
+Ensuite si vous créez les différentes colonnes associées aux étapes de votre projet 
+(*À faire*, *En cours*, *Terminé*) vous pouvez 
+déplacer cette tâche dans ces colonnes
+grâce au **drag & drop**. 
+
+<Aside>
+Cet aperçu des modules Contacts et Projet illustre la similitude des vues 
+au sein d’un ERP. 
+Vous serez amenés à manipuler des vues génériques, de la même manière 
+que vous l’avez fait avec Django.
+</Aside>
+
+## Créer un nouvel utilisateur
+
+La prochaine étape dans votre découverte d'Odoo consiste à 
+vous connecter avec un autre utilisateur.
+
+Commencez par créer un nouvel utilisateur :
+
+1. Allez dans **Settings**.  
+2. Dans le menu, sélectionnez **Users & Companies**, puis le sous-menu **Users**.  
+3. Cliquez sur **New**.  
+4. Remplissez les informations suivantes :  
+   - **Nom** : *bob*  
+   - **Email** : `bob@he2b.be`  
+   - **Accès** : attribuez-lui les droits d’administrateur sur tous les modules.  
+5. Cliquez sur **Save manually**.  
+
+Pour que ce nouvel utilisateur puisse se connecter, il faut lui attribuer un mot de passe :  
+Dans le menu des options à côté du nom de l’utilisateur, cliquez sur **Change Password** 
+et définissez un mot de passe.  
+
+Enfin, déconnectez-vous d’Odoo via **Logout** à côté de votre avatar en haut à droite, 
+puis reconnectez-vous en tant que **bob**.  
+Vous devriez désormais avoir accès à tous les modules, 
+à l’exception de **Settings**, réservé aux administrateurs.

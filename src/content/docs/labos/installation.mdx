@@ -1,0 +1,162 @@
+---
+title: Odoo - Installation
+description: Odoo Installation
+---
+import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
+
+Dans ce chapitre, nous allons installer **Odoo** en utilisant **Docker**. 
+Cette méthode est pratique pour isoler votre environnement et éviter les conflits avec 
+d'autres logiciels installés sur votre machine.
+
+Avant de commencer, assurez-vous d'avoir installé sur votre machine 
+[Docker](https://www.docker.com/products/docker-desktop) via la commande :
+
+```bash  showLineNumbers=true
+docker --version
+```
+
+## Architecture Odoo
+
+L’architecture repose sur deux conteneurs distincts :
+
+- PostgreSQL : il héberge la base de données utilisée par Odoo. Toutes les informations (utilisateurs, modules, configurations, données métier) y sont stockées.
+- Odoo : c’est l’application serveur qui exécute la logique métier, charge les modules, et fournit l’interface web accessible via localhost:8069.
+
+Les deux conteneurs communiquent entre eux grâce à un lien réseau 
+Docker.
+
+L’image officielle du conteneur odoo et sa documentation sont disponibles sur 
+**[Docker Hub](https://hub.docker.com/_/odoo/)**.
+
+Les fichiers de configuration se trouvent sur le dépôt GitHub d’Odoo : 
+[https://github.com/odoo/docker/tree/master/18.0](https://github.com/odoo/docker/tree/master/18.0)
+
+
+## Démarrage des conteneurs
+
+Sur votre machine, commencez par créer un dossier qui servira de répertoire 
+de développement pour vos futurs modules Python des TDs.
+Nous ferons ensuite référence à ce dossier à l’aide du chemin 
+`/path/to/addon`.
+Ensuite créez le conteneur PostgreSQL via la commande :
+
+```bash
+docker run -d -e POSTGRES_USER=odoo -e POSTGRES_PASSWORD=odoo -e POSTGRES_DB=postgres -p 5433:5432 --name db  postgres:15
+```
+
+Cette commande se décompose comme suit :
+
+| Element | Description |
+|-----------|-------------|
+| `docker run` | Lance un nouveau conteneur Docker. |
+| `-d` | Exécute le conteneur en **mode détaché** (en arrière-plan). |
+| `-e POSTGRES_USER=odoo` | Définit le **nom de l’utilisateur PostgreSQL** à `odoo`. |
+| `-e POSTGRES_PASSWORD=odoo` | Définit le **mot de passe** de l’utilisateur PostgreSQL à `odoo`. |
+| `-e POSTGRES_DB=postgres` | Crée une **base de données initiale** nommée `postgres`. |
+| `-p 5433:5432` | Mappe le **port 5432 du conteneur** (PostgreSQL) sur le **port 5433 de la machine hôte**. |
+| `--name db` | Donne le **nom `db`** au conteneur, utile pour le gérer ou le lier à d’autres conteneurs. |
+| `postgres:15` | Spécifie l’**image Docker** à utiliser (PostgreSQL version 15). |
+
+
+Finalement créez le conteneur Odoo via la commande ci-dessous.
+
+<Aside>
+**Remplacez** `/path/to/addon` par le chemin **valide sur votre machine** vers le dossier contenant vos modules personnalisés. 
+</Aside>
+
+```bash
+docker run -v /path/to/addon:/mnt/extra-addons -p 8069:8069 --name odoo --link db:db -t odoo:18 --dev=all
+```
+
+La commande peut se décomposer comme : 
+
+| Element | Description |
+|-----------|-------------|
+| `docker run` | Lance un nouveau conteneur Docker. |
+| `-v /path/to/addon:/mnt/extra-addons` | Monte le dossier local `/path/to/addon` dans le conteneur à `/mnt/extra-addons`, pour ajouter des modules personnalisés. |
+| `-p 8069:8069` | Mappe le **port 8069 du conteneur** (serveur Odoo) sur le **port 8069 de la machine hôte**, accessible via `http://localhost:8069`. |
+| `--name odoo` | Donne le **nom `odoo`** au conteneur, pratique pour le démarrer ou l’arrêter. |
+| `--link db:db` | Lie ce conteneur au conteneur PostgreSQL nommé `db`, permettant la communication entre Odoo et la base de données. |
+| `-t` | Alloue un pseudo-terminal (utile pour certains logs interactifs). |
+| `odoo:18` | Spécifie l’**image Docker Odoo version 18** à utiliser. |
+| `--dev=all` | Active le mode développement complet d’Odoo (rechargement automatique, logs détaillés, etc.). |
+
+
+<Aside>
+Un module Odoo est un ensemble structuré de fonctionnalités qui étend le système Odoo. 
+Il peut inclure des modèles de données, des vues, des actions, des rapports, 
+des règles de sécurité et des données initiales.
+
+Chaque module est indépendant et peut être installé, mis à jour ou désinstallé sans affecter 
+le reste du système. Les modules permettent de personnaliser Odoo pour répondre aux besoins 
+spécifiques d’une organisation, par exemple pour la gestion des contacts, des ventes, 
+de la comptabilité ou des sites web.
+</Aside>
+
+Le démarrage du serveur Odoo doit conduire à l'affichage des logs de ce type : 
+
+```
+2025-10-12 20:33:14,821 1 INFO ? odoo: Odoo version 18.0-20251008 
+2025-10-12 20:33:14,821 1 INFO ? odoo: Using configuration file at /etc/odoo/odoo.conf 
+2025-10-12 20:33:14,821 1 INFO ? odoo: addons paths: ['/usr/lib/python3/dist-packages/odoo/addons', '/var/lib/odoo/addons/18.0', '/mnt/extra-addons'] 
+2025-10-12 20:33:14,821 1 INFO ? odoo: database: odoo@172.17.0.2:5432 
+```
+
+Remarquez la présence du dossier `/mnt/extra-addons` dans ces logs.
+
+<Aside>
+N'oubliez pas d'utilisez la commande ci dessous pour vérifier si les conteneurs sont actifs :
+
+```bash
+docker ps -a
+```
+</Aside>
+
+## Accéder à Odoo
+
+Ouvrez votre navigateur et allez à l’adresse 
+[http://localhost:8069](http://localhost:8069)
+
+Remplissez les champs comme suit :
+
+| Champ              | Valeur à indiquer        |
+|--------------------|--------------------------|
+| **Master Password** | (notez le mot de passe) |
+| **Database name**   | `dev01`                 |
+| **Email**           | `g12345@he2b.be`        |
+| **Password**        | `odoo`                  |
+| **Country**         | `Belgium`               |
+| **Demo data**       | `Yes`                   |
+
+Vous devriez voir la page d’accueil d'Odoo.
+Consultez les logs du conteneur odoo et vérifier que l'installation
+des modules de bases s'est terminée en succès via la présence d'un message du type : 
+
+```
+2025-10-12 20:42:18,824 1 INFO None odoo.modules.loading: 12 modules loaded in 2.15s, 4272 queries (+4272 extra) 
+2025-10-12 20:42:18,943 1 INFO None odoo.modules.loading: Modules loaded. 
+```
+
+## Arrêter les conteneurs
+
+Pour arrêter tous les conteneurs Docker, utilisez les commandes ci-dessous :
+
+```bash  showLineNumbers=true
+docker stop odoo
+docker stop db
+```
+
+Avec cette configuration, vous avez un environnement Odoo isolé 
+et prêt à accueillir vos modules personnalisés.
+
+<Aside icon="pencil" title="Exercice">
+Pour redémarrer les conteneurs dans cette configuration vous devez utiliser les commandes :
+
+```bash
+docker start db
+docker start odoo
+```
+
+Modifiez votre installation et créez un fichier `docker-compose.yml`
+qui permet de démarrer Odoo en une seule commande.
+</Aside>
