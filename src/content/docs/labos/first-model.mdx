@@ -4,125 +4,322 @@ description: Odoo model
 ---
 import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
 
-![Description de l'image](../../../assets/work-in-progress.jpeg)
+Dans ce TD vous allez créez une application de gestion de tâches.
+L'objectif est de comprendre les bases de la création d'un module dans Odoo.
 
+Cet exercice s’inspire du livre 
+*Daniel Reis, Odoo 11 Development Essentials - Third Edition, Packt, March 2018.*
 
-{/* 
-# Créer un module Odoo
+## Repartir sur une nouvelle instance
 
-...
+Avant de créer votre propre module, démarrez avec une **instance Odoo propre**, sans les modules *Contacts* ni *Project*.
 
----
+Pour cela, **supprimez les conteneurs existants** puis **recréez-les** à l’aide des commandes Docker adéquates.
+Cela vous permettra de repartir d’un environnement vierge, idéal pour le développement du nouveau module.
 
-## Consignes générales
+## Commande de création
 
-Durant ce **TD**, vous allez créer un **module de gestion de tâches** dans Odoo.  
+L’utilitaire **`odoo-bin.py`** , consultable dans le code source d'Odoo, 
+est un outil en ligne de commande qui permet d’interagir avec Odoo 
+de différentes manières, notamment pour **créer un nouveau module**.
+Cet utilitaire possède plusieurs fonction comme celle de créer un nouveau module.
 
-La **documentation officielle d’Odoo** est à consulter si vous avez besoin de compléments.
+Dans le conteneur Docker pour interagir avec le serveur, on n'utilise pas **`odoo-bin.py`** 
+mais le binaire **`odoo`**,  placé
+dans le conteneur au chemin `/usr/bin` pour gérer cette interaction.
 
-Notamment pour cette première partie : 
+<Aside>
+Les prochaines étapes consistent à interagir avec le dossier `/mnt/extra-addons/todo_app` du conteneur. 
+Si durant ces étapes vous obtenez une erreur `PermissionError: [Errno 13] Permission denied: /mnt/extra-addons/todo_app`, cela signifie que le conteneur 
+Odoo n’a pas les droits d’écriture sur le dossier monté `/path/to/addon`.
+Pour corriger cela, donnez les droits d’accès à ce dossier via par exemple la commande
+`docker exec -ti --user root odoo chmod -R 777 /mnt/extra-addons/todo_app`
+</Aside>
 
-- [Le manifest](https://www.odoo.com/documentation/17.0/developer/reference/backend/module.html#module-manifests)
-- [Modèles, attributs, méthodes](https://www.odoo.com/documentation/17.0/developer/reference/backend/orm.html)
-- [Les gestionnaires d’événements](https://www.odoo.com/documentation/17.0/developer/reference/backend/actions.html)
-- [Les vues](https://www.odoo.com/documentation/17.0/developer/reference/user_interface/view_records.html)
-
----
-
-## Création du module de gestion de tâches
-
-Vous allez créer une application intitulée `todo_app`.  
-Elle s’inspire du livre :
-
-> *Daniel Reis, Odoo 11 Development Essentials - Third Edition, Packt, March 2018.*
-
-### 1. Création du module
-
-Utilisez la commande `scaffold` pour générer la structure du module :
+Dans un terminal exécutez la commande permettant de créer un nouveau module :
 
 ```bash
-odoo-bin scaffold todo_app ./addons
+docker exec -it odoo odoo scaffold todo_app /mnt/extra-addons
 ```
 
-Ouvrez ensuite le fichier `__manifest__.py` et **complétez la description** de votre application.
+| Élément | Description |
+|----------|-------------|
+| `docker exec -it odoo` | Exécute une commande à l’intérieur du conteneur **nommé `odoo`**, en mode interactif (`-it`). |
+| `odoo scaffold` | Lance l’utilitaire d’Odoo pour **générer la structure d’un nouveau module**. |
+| `todo_app` | Nom du nouveau module à créer. |
+| `/mnt/extra-addons` | Chemin à l’intérieur du conteneur où le module sera généré. Il correspond au dossier local `/path/to/addon` monté sur la machine hôte. |
 
----
 
-### 2. Installation du module
+Les différentes options de l'étape de *Scaffolding* sont décrites dans la documentation :
+[https://www.odoo.com/documentation/18.0/fr/developer/reference/cli.html#reference-cmdline-scaffold](https://www.odoo.com/documentation/18.0/fr/developer/reference/cli.html#reference-cmdline-scaffold)
 
-Installez l’application `todo_app` dans Odoo.  
-Assurez-vous que votre module apparaît dans la liste des applications.  
-⚠️ *Vérifiez le filtre « Application » dans le champ de recherche.*
+Dans le dossier local, vous devriez voir apparaître le dossier **todo_app** contenant
 
-Pour que le module soit reconnu comme une application, ajoutez cette ligne dans votre `manifest` :
+<FileTree>
+- \_\_init\_\_.py
+- \_\_manifest\_\_.py
+- controllers
+   - controllers.py
+   - \_\_init\_\_.py
+- demo
+   -  demo.xml
+- models
+   -  \_\_init\_\_.py
+   -  models.py
+- security
+   -  ir.model.access.csv
+- views
+   -  templates.xml
+   -  views.xml
+</FileTree>
 
-```python
-'application': True,
+## Le fichier manifest
+
+Le fichier `__manifest__.py` est un **fichier de métadonnées** essentiel pour tout module Odoo. 
+Il s'agit d'un dictionnaire Python.
+Les clés du dictionnaire (`'name'`, `'version'`, `'depends'`, `'data'`, ...) décrivent les métadonnées et la configuration du module.
+Les valeurs peuvent être des chaînes de caractères, des listes, des booléens,...
+
+Odoo lit ce dictionnaire au moment du **chargement** du module pour savoir comment installer et configurer le module.
+Il informe Odoo sur :
+
+- Le **nom** du module (`'name'`);
+- La **version** du module (`'version'`);
+- La **description** (`'summary'` ou `'description'`);
+- L’**auteur** ou l’entreprise qui développe le module (`'author'`);
+- Les **dépendances** sur d’autres modules (`'depends'`);
+- Les **fichiers à charger** : vues, données, sécurité, ... (`'data'`).
+
+Des indications pour renseigner si le module est **installable** (`'installable': True,`) 
+ou si le module est une **application** (`'application' : True,`) peuvent être ajoutées.
+
+La version générée de ce fichier est présentée ci-dessous, mais toutes les clés possibles 
+sont décrites dans la [documentation](https://www.odoo.com/documentation/18.0/fr/developer/reference/backend/module.html?highlight=manifest).
+
+```python  showLineNumbers=true
+# -*- coding: utf-8 -*-
+{
+    'name': "todo_app",
+
+    'summary': "Short (1 phrase/line) summary of the module's purpose",
+
+    'description': """
+Long description of module's purpose
+    """,
+
+    'author': "My Company",
+    'website': "https://www.yourcompany.com",
+
+    # Categories can be used to filter modules in modules listing
+    # Check https://github.com/odoo/odoo/blob/15.0/odoo/addons/base/data/ir_module_category_data.xml
+    # for the full list
+    'category': 'Uncategorized',
+    'version': '0.1',
+
+    # any module necessary for this one to work correctly
+    'depends': ['base'],
+
+    # always loaded
+    'data': [
+        # 'security/ir.model.access.csv',
+        'views/views.xml',
+        'views/templates.xml',
+    ],
+    # only loaded in demonstration mode
+    'demo': [
+        'demo/demo.xml',
+    ],
+}
+
 ```
 
-Mettez à jour votre module et vérifiez que la recherche fonctionne avec le filtre activé.
+<Aside icon="pencil" title="Exercice">
+Mettez à jour le manifest avec :
 
----
+- un **nom clair** (`'Todo App'`);
+- un numéro de **version** (par exemple `'1.0'`);
+- une **description courte et compréhensible**;
+- les clés **installable** et **application** à la valeur `True`.
 
-### 3. Icône du module
+Aucune autre dépendances à part celle au module `['base']` n'est nécessaire.
+Les fichiers XML de `'data'`  et `'demo'` restent inchangés.
+</Aside>
 
-Pour personnaliser votre module :
+## Activer le mode développeur
 
-1. Créez le dossier `static/description`.
-2. Copiez-y une image `icon.png` fournie dans le cours.
-3. Mettez à jour votre module.
-4. Vérifiez que l’icône apparaît dans la liste des modules.
+Si vous ne trouvez pas votre application **todo_app** dans la liste des applications à installer, 
+c’est normal : Odoo n’a pas encore **rafraîchi la liste des modules disponibles**.
 
----
+Pour y remédier, il faut activer le **mode développeur**, qui donne accès à des options avancées : 
 
-### 4. Dépôt Git
+1. Dans votre navigateur, ajoutez le paramètre de requête `?debug=1` à l’URL actuelle d’Odoo.  
+   Par exemple :  [http://localhost:8069/odoo/apps?debug=1](http://localhost:8069/odoo/apps?debug=1)
 
-Vous remettrez votre travail sur le dépôt Git créé par votre enseignant.
+2. Rechargez la page et constatez l'apparition de nouveaux boutons dans le module des **Applications** :
+   - **Update Apps List**
+   - **Apply Scheduled Upgrades**
+   - **Import modules**
 
-Exemple d’adresse :
-```bash
-https://git.esi-bru.be/2022-2023/erpg56/odoo/odoo-dev-g12345.git
-```
+3. Cliquez sur **Update Apps List** pour forcer Odoo à rechercher les nouveaux modules présents dans le répertoire des `/mnt/extra-addons`.
 
-⚠️ **Seul votre dossier `extra-addons` sera versionné.**
+4. Une fois la liste mise à jour, recherchez de nouveau **todo_app** et installez-le en cliquant sur **Activate**.
 
-Ajoutez un fichier `.gitignore` contenant au minimum :
-```
-*.pyc
-__pycache__/
-*.log
-*.swp
-*.egg-info/
-.idea/
-.vscode/
-```
+<Aside icon="pencil" title="Exercice">
 
----
+Changez la clé application à la valeur False (`'application' : False,`) dans votre manifest, 
+cliquez sur **Update Apps List**
+et essayez à nouveau de chercher votre
+application via le tableau de bord. Que se passe-t-il ?
+
+N'oubliez de remettre la clé à la valeur True une fois votre test terminé (`'application' : True,`).
+
+</Aside>
+
+## Icône du module
+
+Afin de distinguer votre application facilement dans le tableau de bord
+et afin de comprendre l'utilité du dossier **static**, vous allez ajouter une icône
+associée à votre application :
+
+1. Dans le dossier de votre module créez le dossier `static/description`;
+1. Copiez-y une image, par exemple `icon.png` fournie sur la page PoEsi;
+1. Ajoutez dans le manifest la clé `'images': ['static/description/icon.png'],`
+1. Cliquez sur **Update Apps List** pour mettre à jour l'application;
+1. Mettez à jour votre module;
+1. Vérifiez que l’icône apparaît dans la liste des modules.
 
 ## Création du modèle `TodoTask`
 
-Dans le dossier `models` de votre module :
-
-1. Vérifiez la présence de l’import du fichier `models` dans `__init__.py`
-2. Créez le fichier `todo_task_model.py`
-3. Créez la classe `TodoTask` héritant de `models.Model`
+Le fichier `models/models.py` de votre module fraîchement généré 
+contient le code décrivant la **structure des modèles de données** d’Odoo.
 
 ```python
-from odoo import models, fields
+# -*- coding: utf-8 -*-
 
-class TodoTask(models.Model):
-    _name = "todo.task"
-    _description = "To-Do Task"
+# from odoo import models, fields, api
+
+
+# class todo_app(models.Model):
+#     _name = 'todo_app.todo_app'
+#     _description = 'todo_app.todo_app'
+
+#     name = fields.Char()
+#     value = fields.Integer()
+#     value2 = fields.Float(compute="_value_pc", store=True)
+#     description = fields.Text()
+#
+#     @api.depends('value')
+#     def _value_pc(self):
+#         for record in self:
+#             record.value2 = float(record.value) / 100
 ```
 
----
+Nous n'utiliserons pas ce fichier par la suite et créerons nos propres fichiers modèles.
 
-### Attributs du modèle
+<Aside icon="open-book" title="Points clés à retenir">
+Après une première lecture du fichier `models/models.py`, vous pouvez constater que :
+- le **modèle** (ou *Business Object*) est une **classe Python** qui hérite de `models.Model`;
+- les attributs "protégés", comme `_name` ou `_description`, permettent à Odoo d’identifier et de décrire le modèle;
+- les champs de données sont définis à l’aide des méthodes du module `fields` (`fields.Char()`, `fields.Float()`, ....);
+- les méthodes du modèle peuvent être enrichies à l’aide de **décorateurs**, comme `@api.depends('field_name')`, pour réagir à des changements de valeurs.
+</Aside>
 
-#### Attributs hérités
-- `_name`: nom technique du modèle → `"todo.task"`
 
-#### Champs de la tâche
+Commencez par créer le modèle principal de l’application `todo_app` en suivant les étapes
+suivantes :
+1. Dans le dossier `models` de votre module, créez un fichier nommé **`todo_task_model.py`**.  
+1. Dans le fichier `__init__.py` du dossier `models`, importez ce nouveau module :
+   ```python
+   from . import todo_task_model
+   ```
+1. Ajoutez ensuite la définition de la classe **TodoTask** dans `todo_task_model.py` :
+   ```python
+   from odoo import models, fields
+
+   class TodoTask(models.Model):
+      _name = "todo.task"
+      _description = "To-Do Task"
+   ```
+1. Dans le tableau de bord des applications, ouvrez la fiche de **todo_app** via l'option **Module info**
+et cliquez sur le bouton **Upgrade** pour mettre à jour le module.
+
+Les attributs protégés `_name` et `_description` permettent à Odoo d'identifier le modèle 
+dans la base de données et de fournir un libellé lisible dans l'interface. 
+`_name` définit le **nom technique** du modèle, 
+tandis que `_description` décrit son rôle pour les utilisateurs.
+
+<Aside>
+En Odoo, la convention de nommage pour le **nom technique d’un modèle** (`_name`) 
+utilise généralement le format `module.nom_du_modele` (par exemple `todo.task`).  
+Cela permet d’**éviter les conflits** entre modules et de clairement identifier 
+à quel module appartient chaque modèle.
+</Aside>
+
+Ce modèle constitue la base de données principale de votre application **todo_app**.
+
+## Consultation de la structure d'un modèle
+
+<Aside>
+Si ce n'est pas déjà fait activez le mode développeur pour la suite.
+</Aside>
+
+Après avoir mis à jour votre module, vous pouvez vérifier qu’Odoo 
+a bien créé la table correspondant à votre modèle **todo.task**.
+
+1. Ouvrez l’application **Settings**;
+1. Dans le menu **Technical**, sélectionnez **Database Structure > Models**;
+1. Recherchez le modèle via son nom technique **todo.task** pour en consulter les détails.
+
+Comme aucun champ personnalisé n’a encore été ajouté, la table ne contient 
+que les **champs de base hérités** de `models.Model`.
+Ces champs assurent l’identification et le suivi des actions effectuées par les utilisateurs :
+
+| Champ | Description |
+|--------|-------------|
+| `id` | Identifiant unique de chaque enregistrement. |
+| `create_date` | Date et heure de création de l’enregistrement. |
+| `create_uid` | Identifiant de l’utilisateur ayant créé l’enregistrement. |
+| `write_date` | Date et heure de la dernière modification. |
+| `write_uid` | Identifiant de l’utilisateur ayant effectué la dernière modification. |
+| `display_name` | Libellé lisible du modèle, utilisé pour les affichages dans l’interface Odoo. |
+
+Ces champs sont automatiquement gérés par Odoo et présents dans **tous les modèles** dérivés de `models.Model`.
+
+## Ajouter un attribut au modèle
+
+Commencez par ajouter un **champ `name`** à votre modèle `todo.task`.
+Ce champ permettra de **nommer chaque tâche** et ne doit pas être confondu avec l'attribut `_name` 
+de la classe, qui définit le **nom technique du modèle**.
+
+Dans le fichier `todo_task_model.py`, ajoutez le champ `name` à votre classe `TodoTask` en déclarant :
+
+- `name` comme un champ de type **Char** via `fields.Char()`.
+- `string="Task Name"` pour définir le **libellé lisible** dans l’interface.
+- `required=True` pour rendre le champ **obligatoire**.
+   ```python
+   from odoo import models, fields
+
+   class TodoTask(models.Model):
+      _name = "todo.task"
+      _description = "To-Do Task"
+
+      name = fields.Char(string="Task Name", required=True)
+   ```
+
+Mettez à jour le module via la fiche de l'application et vérifiez 
+la structure des données via le menu **Technical > Database Structure > Models**.
+
+D’autres options courantes existent pour `fields.Char()`, comme :
+- `size=50` : limite le nombre de caractères;
+- `default="valeur"` : valeur par défaut pour le champ;
+- `help="Texte explicatif"` : texte d’aide affiché à l’utilisateur.
+
+
+<Aside icon="pencil" title="Exercice">
+
+Consultez la documentation concernant les champs possible via [https://www.odoo.com/documentation/18.0/developer/reference/backend/orm.html#fields](https://www.odoo.com/documentation/18.0/developer/reference/backend/orm.html#fields)
+
+Ensuite modifiez la classe `todo.task` afin qu'elle soit composée des attributs suivants : 
 
 | Nom du champ      | Type     | Description                        | Défaut | Obligatoire |
 |--------------------|----------|------------------------------------|---------|--------------|
@@ -131,41 +328,5 @@ class TodoTask(models.Model):
 | `active`           | Boolean  | Tâche affichée ?                   | True    | Non |
 | `date_deadline`    | Date     | Date limite                        | -       | Non |
 
-#### Relations
-
-| Nom du champ | Type | Relation | Description |
-|---------------|------|-----------|--------------|
-| `user_id` | Many2one | res.users | Utilisateur responsable |
-| `team_ids` | Many2many | res.partner | Membres de l’équipe |
-
-Activez le mode développeur (`?debug=true`) et vérifiez dans :  
-`Settings > Technical > Database Structure > Models`
-
----
-
-### Extension du modèle `res.partner`
-
-Créez `res_partner_model.py` :
-
-```python
-from odoo import models, fields
-
-class ResPartner(models.Model):
-    _inherit = "res.partner"
-    todo_ids = fields.Many2many("todo.task", string="To-do Teams")
-```
-
-Mettez à jour votre module et vérifiez dans le menu développeur.
-
----
-
-## Ajouter les droits d’accès
-
-Modifiez le fichier `ir.model.access.csv` :
-
-```
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_todo_task_user,todo.task.user,model_todo_task,base.group_user,1,1,1,1
-```
-
-*/}
+Mettez à jour votre module et **vérifiez** la présence de ces champs en consultant la structure des données. 
+</Aside>

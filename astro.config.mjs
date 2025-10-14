@@ -28,10 +28,12 @@ export default defineConfig({
 					label: '2 - Création d\'un module',
 					items: [
 						{ label: '2.1 - Mon premier module', slug: 'labos/first-model' },
-						{ label: '2.2 - Création de la vue', slug: 'labos/first-view' },						
-						{ label: '2.3 - Logique métier associée au bouton', slug: 'labos/business-logic' },
-						{ label: '2.4 - Sécurité', slug: 'labos/security' },
-						{ label: "2.5 - Mettre en place une API", slug: 'labos/api'},
+						{ label: '2.2 - Les associations', slug: 'labos/associations' },
+						{ label: '2.3 - Extension de modèle', slug: 'labos/extension' },
+						{ label: '2.4 - Création de la vue', slug: 'labos/first-view' },						
+						{ label: '2.5 - Logique métier associée au bouton', slug: 'labos/business-logic' },
+						{ label: '2.6 - Sécurité', slug: 'labos/security' },
+						{ label: "2.7 - Mettre en place une API", slug: 'labos/api'},
 
 					],
 				},
