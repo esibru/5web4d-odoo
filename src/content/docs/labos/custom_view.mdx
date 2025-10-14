@@ -4,4 +4,181 @@ description: Odoo vue
 ---
 import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
 
-![Description de l'image](../../../assets/work-in-progress.jpeg)
+Odoo propose par défaut des vues génériques pour chaque modèle,
+mais il est possible de **personnaliser leur présentation**
+afin de mieux adapter l’interface à vos besoins.
+Pour cela, il suffit d’ajouter un **enregistrement dans la table des vues** 
+via un fichier XML chargé lors de la mise à jour du module.
+
+## Personnalisation de la vue de détail
+Vous allez modifier la **vue de détail** (appelée *vue formulaire* dans Odoo) 
+pour le modèle `todo.task`.
+Dans le dossier `views` de votre module, créez un nouveau fichier intitulé 
+**`todo_view.xml`**.
+
+Ce fichier contiendra la définition complète de la vue, avec la structure 
+du formulaire et la disposition des champs.
+Chaque élément `<group>` permet d’organiser les champs visuellement, 
+tandis que les attributs comme `widget` ou `readonly` contrôlent le comportement 
+de certains champs.
+
+```xml
+<?xml version="1.0"?>
+<odoo>
+    <record id="view_form_todo_task" model="ir.ui.view">
+        <field name="name">To-do Task Form</field>
+        <field name="model">todo.task</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group name="group_top">
+                        <group name="group_left">
+                            <field name="name" />
+                            <field name="user_id" />
+                            <field name="is_done" />
+                        </group>
+                        <group name="group_right">
+                            <field name="date_deadline" />
+                            <field name="team_ids" widget="many2many_tags" />
+                            <field name="active" readonly="1" />
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>
+```
+
+<Aside>
+On peut décoder le contenu de fichier comme suit : 
+- `<record id="view_form_todo_task" model="ir.ui.view">`  
+  Ce bloc crée un nouvel enregistrement dans le modèle `ir.ui.view`, qui contient la définition d’une vue dans Odoo.  
+  - **id** : identifiant unique de la vue.  
+  - **model** : indique que cet enregistrement correspond à une vue (`ir.ui.view`).  
+
+- `<field name="name">To-do Task Form</field>`  
+  Donne un **nom lisible** à la vue.
+
+- `<field name="model">todo.task</field>`  
+  Spécifie le **modèle de données** auquel cette vue est associée.
+
+- `<field name="arch" type="xml">...</field>`  
+  Contient la **structure XML de la vue** (le formulaire à afficher).  
+  C’est ici que la mise en page et les champs sont définis.
+
+    - `<form>` : racine de la vue de détail.  
+    - `<sheet>` : zone principale contenant les champs du formulaire.  
+    - `<group>` : permet de regrouper visuellement les champs.  
+    - **group_left** : affiche les champs `name`, `user_id` et `is_done`.  
+    - **group_right** : affiche `date_deadline`, `team_ids` et `active`.
+
+Certains champs ont des attributs spécifiques :  
+- `widget="many2many_tags"` : affiche la relation *Many2many* sous forme d’étiquettes.  
+- `readonly="1"` : rend le champ **non modifiable** dans cette vue.
+</Aside>
+
+Une fois ce fichier créé, vous devez **mettre à jour le fichier `__manifest__.py`** 
+afin qu’Odoo charge cette nouvelle vue lors de l’installation ou de la mise à jour du module.
+Dans la clé `data` du fichier `__manifest__.py`, 
+ajoutez la référence au fichier `todo_view.xml`, 
+**après le fichier des menus**.
+
+```xml
+    'data': [
+        'security/ir.model.access.csv',
+        'views/todo_menu.xml',
+        'views/todo_view.xml',
+    ],
+```
+
+Après avoir mis à jour votre module :
+1. Accédez à votre module **Todos**.  
+1. Ouvrez le détail d’une tâche depuis la vue liste.  
+1. Vous constaterez que la **vue de détail** a été personnalisée 
+selon la nouvelle structure définie.
+
+Si vous souhaitez modifier cette vue en respectant un autre design,
+vous pouvez consulter la documentation pour connaître les balises et widgets
+implémentés par Odoo : 
+[https://www.odoo.com/documentation/18.0/developer/reference/user_interface/view_architectures.html#form](https://www.odoo.com/documentation/18.0/developer/reference/user_interface/view_architectures.html#form)
+
+{/* 
+
+---
+
+### 2. Fichier `todo_view.xml`
+
+Créez les vues personnalisées :
+
+#### Formulaire
+
+```xml
+<record id="view_todo_task_form" model="ir.ui.view">
+  <field name="name">todo.task.form</field>
+  <field name="model">todo.task</field>
+  <field name="arch" type="xml">
+    <form>
+      <sheet>
+        <group>
+          <field name="name"/>
+          <field name="is_done"/>
+          <field name="date_deadline"/>
+          <field name="team_ids"/>
+        </group>
+      </sheet>
+    </form>
+  </field>
+</record>
+```
+
+#### Liste
+
+```xml
+<record id="view_todo_task_tree" model="ir.ui.view">
+  <field name="name">todo.task.tree</field>
+  <field name="model">todo.task</field>
+  <field name="arch" type="xml">
+    <tree decoration-muted="is_done">
+      <field name="name"/>
+      <field name="user_id"/>
+      <field name="date_deadline"/>
+    </tree>
+  </field>
+</record>
+```
+
+#### Recherche
+
+```xml
+<record id="view_todo_task_search" model="ir.ui.view">
+  <field name="name">todo.task.search</field>
+  <field name="model">todo.task</field>
+  <field name="arch" type="xml">
+    <search>
+      <filter name="not_done" string="En cours" domain="[('is_done','=',False)]"/>
+      <filter name="done" string="Terminées" domain="[('is_done','=',True)]"/>
+    </search>
+  </field>
+</record>
+```
+
+---
+
+### 3. Extension de la vue partenaire
+
+Ajoutez dans `todo_view.xml` :
+
+```xml
+<record id="view_res_partner_form_inherit_todo" model="ir.ui.view">
+  <field name="name">res.partner.form.todo.inherit</field>
+  <field name="model">res.partner</field>
+  <field name="inherit_id" ref="base.view_partner_form"/>
+  <field name="arch" type="xml">
+    <field name="category_id" position="after">
+      <field name="todo_ids" widget="many2many_tags"/>
+    </field>
+  </field>
+</record>
+```
+*/}
