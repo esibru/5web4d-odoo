@@ -4,35 +4,174 @@ description: Docs intro
 ---
 import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
 
-![Description de l'image](../../../assets/work-in-progress.jpeg)
+Vous allez maintenant créer l’interface utilisateur de votre module.
+Dans Odoo, les **vues**, **menus** et **actions** sont enregistrés sous forme d'
+**enregistrements dans la base de données**, mais leur définition initiale se fait dans 
+des **fichiers XML** chargés lors de la mise à jour du module.
 
+L’interface graphique repose sur plusieurs éléments essentiels :
+- **menuitem** : définit la structure de navigation dans l’application;
+- **actions** (`ir.actions.act_window`) : déterminent les écrans ouverts par un menu;
+- **vues** : définissent la présentation des données (liste, formulaire, kanban, ...).
 
-{/* 
+## Création du menu
 
-## Création des vues
+Dans le dossier `views`, créez un fichier nommé `todo_menu.xml` contenant
+la structure des menus de votre module
 
-Avant de créer les vues, consultez la documentation :  
-[Odoo Views Documentation](https://www.odoo.com/documentation/17.0/developer/reference/addons/views.html)
-
-Créez dans le dossier `views` :
-
-### 1. Fichier `todo_menu.xml`
-
-Ajoutez un menu permettant d’accéder à la liste et au formulaire des tâches.
-
-```xml
+```xml  showLineNumbers=true
+<?xml version="1.0"?>
 <odoo>
-  <menuitem id="menu_todo_root" name="To-Do"/>
-  <record id="action_todo_task" model="ir.actions.act_window">
-    <field name="name">Tasks</field>
-    <field name="res_model">todo.task</field>
-    <field name="view_mode">tree,form</field>
-  </record>
-  <menuitem id="menu_todo_task" name="Tasks" parent="menu_todo_root" action="action_todo_task"/>
+  <menuitem id="menu_todo_task" name="Todos">
+      <menuitem id="todo_task_menu" name="Todos">
+          <menuitem id="task_menu" name="Tasks" />
+      </menuitem>
+      <menuitem id="configuration_menu" name="Configuration">
+          <menuitem id="contact_menu" name="Contacts" />
+      </menuitem>
+  </menuitem>
 </odoo>
 ```
 
-Ajoutez ce fichier dans la section `data` du manifest.
+<Aside>
+Ce fichier XML définit une hiérarchie de menus imbriqués permettant de naviguer dans l'application.
+
+- **Todos** (`menu_todo_task`) : menu racine du module.
+  - **Todos** (`todo_task_menu`) : sous-menu principal pour les tâches.
+    - **Tasks** (`task_menu`) : sous-menu ouvrant l'écran des tâches.
+  - **Configuration** (`configuration_menu`) : sous-menu pour la configuration du module.
+    - **Contacts** (`contact_menu`) : sous-menu permettant d'accéder à la liste des contacts.
+
+Chaque `menuitem` est défini par :  
+- **id** : identifiant unique utilisé pour référencer le menu;  
+- **name** : nom affiché dans l'interface utilisateur d'Odoo;
+</Aside>
+
+Ensuite, ajoutez ce fichier dans la section `data` du fichier `__manifest__.py`.
+Vous pouvez supprimer les fichiers `view.xml` et `template.xml` générés automatiquement, 
+car ils ne servaient qu’à illustrer la structure des vues Odoo.
+
+```xml  showLineNumbers=true
+    'data': [
+        # 'security/ir.model.access.csv',
+        'views/todo_menu.xml',
+    ],
+```
+
+Après la mise à jour du module, vérifiez que les menus ont bien été créés :  
+1. Ouvrez **Settings**;
+1. Rendez-vous dans **Technical > User Interface > Menu Items**;
+1. Recherchez les menus par leur nom pour en examiner le contenu.
+
+## Création d’une action
+
+Pour qu’un clic sur un menu ouvre une vue, vous devez créer une **action**.
+L’action `action_todo_task` est un **record** Odoo du modèle `ir.actions.act_window`.
+Ajoutez cette première action comme premier élément du fichier `todo_menu.xml`
+
+```xml  showLineNumbers=true
+<?xml version="1.0"?>
+<odoo>
+   <record model="ir.actions.act_window" id="action_todo_task">
+      <field name="name">To-do Task</field>
+      <field name="res_model">todo.task</field>
+      <field name="view_mode">list</field>
+  </record>
+    
+  <menuitem id="menu_todo_task" name="Todos">
+      <menuitem id="todo_task_menu" name="Todos">
+          <menuitem id="task_menu" name="Tasks" action="action_todo_task"/>
+      </menuitem>
+      <menuitem id="configuration_menu" name="Configuration">
+          <menuitem id="contact_menu" name="Contacts" />
+      </menuitem>
+  </menuitem>
+</odoo>
+```
+
+<Aside>
+Cette action contient plusieurs champs :
+- **id** : l’identifiant interne utilisé pour référencer l’action dans le menu;
+- **res_model** : indique le modèle métier à afficher (`todo.task`);
+- **name** : le titre de l’action visible par l’utilisateur;
+- **view_mode** : les modes de vue disponibles, `list` dans ce premier exemple.
+</Aside>
+
+Remarquez l'ajout de l’attribut `action="action_todo_task"` dans le menuitem 
+permettant d’associer cette action à l’élément **Tasks**, 
+ce qui déclenche l'action lorsqu’un utilisateur clique sur cette option du menu.
+
+Après avoir mis à jour votre module, vous pouvez vérifier qu’Odoo 
+a bien créé l'action correspondante : 
+
+1. Ouvrez l’application **Settings**;
+1. Dans le menu **Technical**, sélectionnez **Actions > Actions**;
+1. Recherchez l'action via son nom To-do Task pour en consulter les détails. 
+
+## Afficher le menu
+
+Afin d'afficher les menus et permettre à l'utilisateur d'interagir via l'interface graphique
+du module, il faut **accorder des droits d’accès** au modèle `todo.task`.
+Ces droits sont définis dans le fichier `security/ir.model.access.csv`.
+Chaque ligne de ce fichier correspond à un enregistrement de type `ir.model.access`, 
+qui associe un modèle à un groupe d’utilisateurs et précise les permissions.
+
+```csv
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_todo_app_todo_app,todo_app.todo_app,model_todo_task,base.group_user,1,1,1,1
+```
+
+<Aside>
+Les colonnes du fichier de sécurité se comprennent comme : 
+
+- **id** : identifiant unique du record de sécurité (`access_todo_app_todo_app`);
+- **name** : nom qui décrit la règle de sécurité (`todo_app.todo_app`);
+- **model_id:id** : référence au modèle concerné (`model_todo_task`);
+- **group_id:id** : groupe d’utilisateurs auquel s’applique la règle (`base.group_user`);
+- **perm_read** : permission de lecture (1 = autorisé, 0 = interdit);
+- **perm_write** : permission de modification;
+- **perm_create** : permission de création;
+- **perm_unlink** : permission de suppression.
+
+Dans cet exemple, le groupe `base.group_user` a **tous les droits** (lecture, écriture, création et suppression) 
+sur le modèle `todo.task`.
+</Aside>
+
+N’oubliez pas d’ajouter ce fichier dans la section `data` du manifest (en le **décommentant** si nécessaire).
+
+```xml  showLineNumbers=true
+    'data': [
+        'security/ir.model.access.csv',
+        'views/todo_menu.xml',
+    ],
+```
+
+## Vues accessibles
+
+Lorsque vous consultez la vue principale de votre module en cliquant 
+sur le menu **Todos**, vous voyez actuellement la **vue liste générique** d’Odoo, 
+qui affiche toutes les tâches créées dans votre module.
+
+En cliquant sur le bouton **New**, vous pouvez créer une nouvelle tâche avec les 
+valeurs souhaitées.
+Lorsque vous revenez à la liste des tâches, votre nouvelle tâche apparaît, 
+mais **cliquer dessus n’ouvre rien**.
+
+La raison est que l’action définie pour ce menu ne donne accès qu’à la **vue liste** :
+
+`<field name="view_mode">list</field>`
+
+Pour pouvoir consulter la **vue détail** d’une tâche, vous devez modifier 
+ce paramètre et autoriser également la **vue formulaire** :
+
+`<field name="view_mode">list,form</field>`
+
+Après avoir mis à jour votre module avec cette modification, 
+cliquez sur une tâche dans la liste pour constater la différence : 
+vous pourrez maintenant accéder à sa **vue détail**.
+
+
+{/* 
 
 ---
 
