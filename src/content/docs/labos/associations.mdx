@@ -4,7 +4,95 @@ description: Odoo associations
 ---
 import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
 
-![Description de l'image](../../../assets/work-in-progress.jpeg)
+Odoo fournit plusieurs **modèles standards** utilisés par de nombreux modules.
+Ces modèles sont installés via le module **base** dont dépendent tous les modules
+comme vous l'avez constaté via l'écriture de votre premier manifest.
+Parmi ces modèles on trouve : 
+- `res.users` : [https://github.com/odoo/odoo/blob/18.0/odoo/addons/base/models/res_users.py](https://github.com/odoo/odoo/blob/18.0/odoo/addons/base/models/res_users.py)
+- `res.partners` : [https://github.com/odoo/odoo/blob/18.0/odoo/addons/base/models/res_partner.py](https://github.com/odoo/odoo/blob/18.0/odoo/addons/base/models/res_partner.py)
+
+Le modèle `res.users` représente les **utilisateurs du système Odoo**. 
+Chaque enregistrement correspond à un compte utilisateur contenant le nom, le login et le mot de passe, 
+ainsi que les droits d’accès, les groupes de sécurité et les préférences personnelles de l’utilisateur. 
+Il permet de gérer l’**authentification et les permissions** au sein de l’ensemble de l’application.
+C'est une instance de ce modèle que vous avez créé lorsque vous avez créé l'utilisateur au début des laboratoires.
+
+Le modèle `res.partner` représente un **partenaire**, c’est-à-dire une **personne ou une entreprise** 
+avec laquelle l’entreprise interagit.
+Il est utilisé pour gérer les clients, les prospects, les fournisseurs et les contacts internes.
+Chaque enregistrement contient des informations telles que le nom, l’adresse, le téléphone et l’email,
+et peut être lié à un utilisateur Odoo (`res.users`) pour gérer les droits d’accès.
+
+Votre objectif dans la suite de ce TD est de créer des associations entre
+votre modèle de tâche et ces modèles représentant des utilisateurs et des partenaires.
+
+## Associations entre modèles dans Odoo
+
+Odoo propose plusieurs types de relations entre modèles pour représenter les liens entre les enregistrements :
+
+- **Many2one** : correspond à une **clé étrangère**. Un enregistrement du modèle courant est lié à **un seul enregistrement** d’un autre modèle.  
+  Exemple : chaque tâche peut être liée à **un seul utilisateur** (`res.users`) considéré comme le responsable de la tâche.
+  ```python
+  user_id = fields.Many2one('res.users', string="Assigned User")
+  ```
+- **One2many** : relation **virtuelle**. Elle est définie sur le modèle « parent » et liste tous les enregistrements du modèle « enfant » qui pointent vers ce parent via un `Many2one`.  
+  Exemple : un utilisateur peut avoir **plusieurs tâches** liées à lui, tâches dont il est le responsable.
+  ```python
+  task_ids = fields.One2many('todo.task', 'user_id', string="Tasks")
+  ```
+- **Many2many** : relation **bidirectionnelle multiple**. Plusieurs enregistrements d’un modèle peuvent être liés à plusieurs enregistrements d’un autre modèle.  
+  Exemple : un étudiant peut suivre plusieurs cours et chaque cours peut avoir plusieurs étudiants.
+  ```python
+  course_ids = fields.Many2many('school.course', 'student_course_rel', 'student_id', 'course_id', string="Courses")
+  ```
+- **One2one** : Odoo n’a pas de champ spécifique pour `One2one`. On le **simule en combinant `Many2one` et une contrainte d’unicité**.  
+  Exemple : si chaque employé doit avoir **un et un seul badge**, on crée un `Many2one` vers le modèle Badge avec l’option `unique=True`.
+  ```python
+  badge_id = fields.Many2one('employee.badge', string="Badge", unique=True)
+  ```
+
+Consultez la documentation pour connaître les paramètres obligatoires et autorisés de chacune de ces relations : 
+[https://www.odoo.com/documentation/18.0/developer/reference/backend/orm.html#relational-fields](https://www.odoo.com/documentation/18.0/developer/reference/backend/orm.html#relational-fields)
+
+## Lien entre une tâche et son responsable
+
+Vous allez créer une **association entre une tâche et un responsable**.
+Un responsable est une personne qui peut se connecter à Odoo et qui est 
+la **personne de contact** associée à une tâche.
+Un même responsable peut être assigné à plusieurs tâches.
+
+<Aside icon="pencil" title="Exercice">
+
+1. Modifiez le modèle **todo.task** pour ajouter un champ représentant cette relation.  
+   - Vous ne devez **pas** implémenter l’association inverse dans `res.users`.
+1. Mettez à jour votre module.
+1. Vérifiez la présence de ce nouveau champ en consultant la **structure des données**.
+
+</Aside>
+
+
+## Lien entre une tâche et les membres d'une équipe
+
+Vous allez créer une **association entre une tâche et plusieurs membres d'une équipe**.
+Un membre est une personne qui **ne se connecte pas à Odoo** mais qui participe à la réalisation de la tâche.
+Un même membre peut être assigné à plusieurs tâches.
+
+<Aside icon="pencil" title="Exercice">
+
+1. Modifiez le modèle **todo.task** pour ajouter un champ représentant cette relation.  
+   - Vous ne devez **pas** implémenter l’association inverse dans `res.partner`.
+1. Mettez à jour votre module.
+1. Vérifiez la présence de ce nouveau champ en consultant la **structure des données**.
+
+</Aside>
+
+
+
+
+
+
+
+
 
 {/* 
 
