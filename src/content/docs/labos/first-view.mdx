@@ -19,7 +19,7 @@ L’interface graphique repose sur plusieurs éléments essentiels :
 Dans le dossier `views`, créez un fichier nommé `todo_menu.xml` contenant
 la structure des menus de votre module
 
-```xml  showLineNumbers=true
+```xml  title="views/todo_menu.xml"
 <?xml version="1.0"?>
 <odoo>
   <menuitem id="menu_todo_task" name="Todos">
@@ -51,7 +51,7 @@ Ensuite, ajoutez ce fichier dans la section `data` du fichier `__manifest__.py`.
 Vous pouvez supprimer les fichiers `view.xml` et `template.xml` générés automatiquement, 
 car ils ne servaient qu’à illustrer la structure des vues Odoo.
 
-```xml  showLineNumbers=true
+```python title="__manifest__.py"  
     'data': [
         # 'security/ir.model.access.csv',
         'views/todo_menu.xml',
@@ -69,7 +69,7 @@ Pour qu’un clic sur un menu ouvre une vue, vous devez créer une **action**.
 L’action `action_todo_task` est un **record** Odoo du modèle `ir.actions.act_window`.
 Ajoutez cette première action comme premier élément du fichier `todo_menu.xml`
 
-```xml  showLineNumbers=true
+```xml title="views/todo_menu.xml"
 <?xml version="1.0"?>
 <odoo>
    <record model="ir.actions.act_window" id="action_todo_task">
@@ -116,7 +116,7 @@ Ces droits sont définis dans le fichier `security/ir.model.access.csv`.
 Chaque ligne de ce fichier correspond à un enregistrement de type `ir.model.access`, 
 qui associe un modèle à un groupe d’utilisateurs et précise les permissions.
 
-```csv
+```csv title="security/ir.model.access.csv"
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_todo_app_todo_app,todo_app.todo_app,model_todo_task,base.group_user,1,1,1,1
 ```
@@ -139,7 +139,7 @@ sur le modèle `todo.task`.
 
 N’oubliez pas d’ajouter ce fichier dans la section `data` du manifest (en le **décommentant** si nécessaire).
 
-```xml  showLineNumbers=true
+```python title="__manifest__.py"  
     'data': [
         'security/ir.model.access.csv',
         'views/todo_menu.xml',

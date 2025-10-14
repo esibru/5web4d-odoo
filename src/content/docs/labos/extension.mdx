@@ -103,7 +103,7 @@ Pour ce faire suivez les étapes suivantes :
 1. Étendez le modèle `res.partner` en utilisant l’attribut `_inherit` 
 et ajoutez un champ contenant la liste des tâches associées.
 Ce champ sera de type `Many2many` et contiendra les identifiants des tâches liées.
-   ```python
+   ```python title="models/res_partner_model.py"
    from odoo import models, fields
    
    class ResPartner(models.Model):

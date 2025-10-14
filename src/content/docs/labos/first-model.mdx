@@ -96,7 +96,7 @@ ou si le module est une **application** (`'application' : True,`) peuvent être 
 La version générée de ce fichier est présentée ci-dessous, mais toutes les clés possibles 
 sont décrites dans la [documentation](https://www.odoo.com/documentation/18.0/fr/developer/reference/backend/module.html?highlight=manifest).
 
-```python  showLineNumbers=true
+```python title="models/__manifest__.py"
 # -*- coding: utf-8 -*-
 {
     'name': "todo_app",
@@ -193,7 +193,7 @@ associée à votre application :
 Le fichier `models/models.py` de votre module fraîchement généré 
 contient le code décrivant la **structure des modèles de données** d’Odoo.
 
-```python
+```python title="models/models.py"
 # -*- coding: utf-8 -*-
 
 # from odoo import models, fields, api
@@ -229,11 +229,11 @@ Commencez par créer le modèle principal de l’application `todo_app` en suiva
 suivantes :
 1. Dans le dossier `models` de votre module, créez un fichier nommé **`todo_task_model.py`**.  
 1. Dans le fichier `__init__.py` du dossier `models`, importez ce nouveau module :
-   ```python
+   ```python title="models/__init__.py"
    from . import todo_task_model
    ```
 1. Ajoutez ensuite la définition de la classe **TodoTask** dans `todo_task_model.py` :
-   ```python
+   ```python title="models/todo_task_model.py"
    from odoo import models, fields
 
    class TodoTask(models.Model):
@@ -296,7 +296,7 @@ Dans le fichier `todo_task_model.py`, ajoutez le champ `name` à votre classe `T
 - `name` comme un champ de type **Char** via `fields.Char()`.
 - `string="Task Name"` pour définir le **libellé lisible** dans l’interface.
 - `required=True` pour rendre le champ **obligatoire**.
-   ```python
+   ```python title="models/todo_task_model.py"
    from odoo import models, fields
 
    class TodoTask(models.Model):

@@ -22,7 +22,7 @@ Chaque élément `<group>` permet d’organiser les champs visuellement,
 tandis que les attributs comme `widget` ou `readonly` contrôlent le comportement 
 de certains champs.
 
-```xml
+```xml title="views/todo_view.xml" 
 <?xml version="1.0"?>
 <odoo>
     <record id="view_form_todo_task" model="ir.ui.view">
@@ -84,7 +84,7 @@ Dans la clé `data` du fichier `__manifest__.py`,
 ajoutez la référence au fichier `todo_view.xml`, 
 **après le fichier des menus**.
 
-```xml
+```python title="__manifest__.py"  
     'data': [
         'security/ir.model.access.csv',
         'views/todo_menu.xml',
@@ -135,7 +135,7 @@ Mettez à jour le fichier XML `todo_menu.xml` pour y ajouter :
 - une action `ir.actions.act_window` pour le modèle `res.partner`,  
 - une option au menu **Configuration > Contacts** qui déclenche cette action.  
 
-```xml
+```xml title="views/todo_menu.xml" ins={9-13,22}
 <?xml version="1.0"?>
 <odoo>
     <record model="ir.actions.act_window" id="action_todo_task">
@@ -182,7 +182,7 @@ La vue parent est consultable sur
 [le dépôt github d'Odoo](https://github.com/odoo/odoo/blob/7c513de528c9f9fdbfc8c5fa8496c94c2c7e96a0/odoo/addons/base/views/res_partner_views.xml#L141).
 Dans cette extension, vous ajouterez le champ `todo_ids` [après le champ `category_id`](https://github.com/odoo/odoo/blob/7c513de528c9f9fdbfc8c5fa8496c94c2c7e96a0/odoo/addons/base/views/res_partner_views.xml#L210).
 
-```xml
+```xml title="views/res_partner_view.xml" 
 <?xml version="1.0"?>
 <odoo>
     <record id="my_inherited_view" model="ir.ui.view">
@@ -205,7 +205,7 @@ le charge lors de la mise à jour du module.
 Dans la clé `data`, ajoutez la référence au fichier `res_partner_view.xml`, 
 **après les fichiers de menu et de vues**.
 
-```xml
+```python title="__manifest__.py"  
     'data': [
         'security/ir.model.access.csv',
         'views/todo_menu.xml',
