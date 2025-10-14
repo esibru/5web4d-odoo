@@ -51,7 +51,7 @@ Ensuite, ajoutez ce fichier dans la section `data` du fichier `__manifest__.py`.
 Vous pouvez supprimer les fichiers `view.xml` et `template.xml` générés automatiquement, 
 car ils ne servaient qu’à illustrer la structure des vues Odoo.
 
-```python title="__manifest__.py"  
+```python title="__manifest__.py"  ins={3} 
     'data': [
         # 'security/ir.model.access.csv',
         'views/todo_menu.xml',
@@ -139,7 +139,7 @@ sur le modèle `todo.task`.
 
 N’oubliez pas d’ajouter ce fichier dans la section `data` du manifest (en le **décommentant** si nécessaire).
 
-```python title="__manifest__.py"  
+```python title="__manifest__.py"  {2} 
     'data': [
         'security/ir.model.access.csv',
         'views/todo_menu.xml',
