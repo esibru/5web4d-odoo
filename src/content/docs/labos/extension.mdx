@@ -4,22 +4,120 @@ description: Odoo extension
 ---
 import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
 
-![Description de l'image](../../../assets/work-in-progress.jpeg)
+Odoo propose plusieurs mécanismes d’héritage permettant de **réutiliser**, **étendre** ou **composer** des modèles existants.
+Ces approches sont essentielles pour adapter les fonctionnalités sans modifier directement le code source du framework.
 
-{/* 
+### Héritage classique
+Un modèle peut hériter d’un autre en redéfinissant les attributs `_inherit` et `_name`.  
+Cela permet de **créer un nouveau modèle** basé sur un modèle existant.
+
+```python
+class Student(models.Model):
+    _name = "esi.student"
+    _inherit = "res.partner"
+```
+
+Ce mécanisme duplique la structure du modèle d’origine dans **un nouveau modèle indépendant**,
+ce qui signifie qu’une **nouvelle table est créée** dans la base de données.
+
+On peut utiliser cet héritage si on souhaite par exemple créer un modèle d’étudiants 
+à partir des partenaires, **sans impacter les clients ou fournisseurs existants**.
+Mais ce nouveau modèle étudiant **ne sera pas automatiquement pris en compte** par les modules qui utilisent `res.partner`.
+
+### Extension
+Lorsqu’un modèle définit seulement `_inherit` sans `_name`, il **étend** 
+un modèle existant en y ajoutant de nouveaux champs, contraintes ou comportements.
+Contrairement à l’héritage classique, **aucune nouvelle table n’est créée** dans la base de données : 
+les modifications s’appliquent directement à la table du modèle d’origine.
+
+```python
+class Student(models.Model):
+    _inherit = "res.partner"
+```
+
+On peut utiliser l’extension lorsqu’on souhaite ajouter des informations spécifiques aux partenaires, 
+par exemple un champ `student_id` pour identifier des étudiants avec son matricule, sans créer un nouveau modèle.
+**Attention** toutes les modifications s’appliquent à **tous les enregistrements du modèle existant**,
+et il faut être prudent pour ne pas impacter les autres usages de `res.partner`.
+
+<Aside icon="warning">
+
+C’est le mécanisme le plus courant pour **personnaliser un modèle existant**.
+
+</Aside>
+
+### Délégation
+L’héritage via `_inherits` permet à un modèle d’**utiliser un autre modèle par composition**.  
+Le nouveau modèle crée une **relation Many2one** vers l’autre modèle et **réutilise ses champs**.
+
+```python
+class DelegatedModel(models.Model):
+    _name = "delegated.model"
+    _inherits = {"base.model": "base_id"}
+    base_id = fields.Many2one("base.model")
+```
+
+Les champs du modèle hérité sont alors accessibles depuis le modèle délégué,
+mais les données sont stockées dans des tables différentes.
+
+Vous pouvez utiliser la délégation si vous développez un module école et que vous souhaitez 
+gérer des **profils d’enseignants**.
+Chaque enseignant doit réutiliser les informations de contact existantes dans `res.partner` (nom, email, téléphone),
+mais vous voulez également ajouter des champs spécifiques aux enseignants, comme la matière enseignée,
+sans modifier directement `res.partner`.
+
+Dans ce cas, vous pouvez créer un modèle `school.teacher` qui **délègue** ses champs de contact à `res.partner` via `_inherits`.
+Les informations de contact restent dans la table `res.partner`, tandis que les données spécifiques aux enseignants sont stockées dans la table `school.teacher`.
+
+Cela permet de combiner les données provenant de plusieurs modèles tout en conservant une table distincte 
+pour la logique métier spécifique.
+
+### En résumé
+
+| Type d’héritage       | Attributs | Impact sur la base de données | Limite |
+|----------------------|------------|-------------------------------|--------------------|
+| Héritage classique    | `_inherit` et `_name`| Nouvelle table créée | Nouveau modèle pas automatiquement compatible avec les modules existants |
+| Extension             | `_inherit` sans `_name` | Aucune nouvelle table | Tous les enregistrements du modèle existant sont affectés |
+| Délégation            | `_inherits` et une relation Many2one. | Deux tables : une pour le nouveau modèle, une pour le modèle délégué | Complexité de gestion et des dépendances |
+
+
+Tous les détails concernant ces mécanismes d'héritage sont
+décrits dans la documentation :
+[https://www.odoo.com/documentation/18.0/developer/reference/backend/orm.html#inheritance-and-extension](https://www.odoo.com/documentation/18.0/developer/reference/backend/orm.html#inheritance-and-extension)
+
+
 
 ## Première extension d'un partenaire
 
-Créez `res_partner_model.py` :
+Poursuivez le développement de votre module de gestion des tâches.
+Chaque tâche peut être associée à plusieurs membres d'une équipe 
+et un membre peut être lié à plusieurs tâches.
+La relation allant d’une tâche vers un partenaire est déjà implémentée.
 
-```python
-from odoo import models, fields
+Votre objectif est maintenant de **mettre en place la direction réciproque** : 
+depuis un partenaire, il doit être possible de consulter la liste des tâches auxquelles il participe.
 
-class ResPartner(models.Model):
-    _inherit = "res.partner"
-    todo_ids = fields.Many2many("todo.task", string="To-do Teams")
-```
+Pour ce faire suivez les étapes suivantes : 
+1. Dans le dossier `models` de votre module, créez un fichier `res_partner_model.py`;
+1. Mettez à jour le fichier `__init__.py` pour importer ce nouveau fichier;
+1. Étendez le modèle `res.partner` en utilisant l’attribut `_inherit` 
+et ajoutez un champ contenant la liste des tâches associées.
+Ce champ sera de type `Many2many` et contiendra les identifiants des tâches liées.
+   ```python
+   from odoo import models, fields
+   
+   class ResPartner(models.Model):
+       _inherit = "res.partner"
+       todo_ids = fields.Many2many("todo.task", string="To-do Teams")
+   ```
+1. Après avoir effectué ces modifications, **mettez à jour votre module** et vérifiez le résultat dans le menu développeur d’Odoo.
+Attention : le modèle `res.partner` contient de nombreux champs.
+Lorsque vous recherchez la présence du champ `todo_ids`, pensez à **parcourir toutes les pages** des attributs 
+(le menu de pagination se trouve en haut à droite).
 
-Mettez à jour votre module et vérifiez dans le menu développeur.
+Le champ ajouté représente une **liste des identifiants des tâches**, accessible depuis l’interface.
 
-*/}
+<Aside icon="warning">
+La convention d’Odoo consiste à ajouter `_ids` à la fin du nom d’un champ qui contient **une liste d’identifiants** d’enregistrements liés, comme dans `todo_ids`.
+Cela permet de **savoir immédiatement** que le champ représente une relation Many2many ou One2many vers d’autres objets.
+</Aside>
