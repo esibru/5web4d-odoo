@@ -33,9 +33,8 @@ export default defineConfig({
 						{ label: '2.4 - Vue générique', slug: 'labos/first-view' },	
 						{ label: '2.5 - Vue personnalisée', slug: 'labos/custom_view' },	
 						{ label: '2.6 - Logique métier associée au bouton', slug: 'labos/business-logic' },
-						{ label: '2.7 - Sécurité', slug: 'labos/security' },
-						{ label: "2.8 - Mettre en place une API", slug: 'labos/api'},
-
+						{ label: "2.7 - Mettre en place une API", slug: 'labos/api'},
+						{ label: '2.8 - Sécurité', slug: 'labos/security' },
 					],
 				},
 				{

@@ -4,5 +4,231 @@ description: Docs intro
 ---
 import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
 
-![Description de l'image](../../../assets/work-in-progress.jpeg)
+Dans ce TD, vous allez apprendre à enrichir vos modules Odoo 
+en **ajoutant des boutons dans les vues de détail**.
+Vous verrez comment associer un bouton à une **méthode Python** 
+de votre modèle afin d’exécuter des actions métiers directement depuis l’interface.
 
+Vous découvrirez également comment **ajouter des logs** pour tracer 
+l’exécution de vos méthodes et faciliter le débogage,
+et comment **lever des exceptions** pour informer l’utilisateur en cas de 
+contraintes ou d’erreurs fonctionnelles.
+
+## Ajouter un bouton dans la vue de détail
+
+Dans cette étape, vous allez **ajouter un bouton personnalisé** à la vue de 
+détail d’une tâche. 
+L’objectif est d’introduire une action visible et accessible directement 
+depuis le formulaire d’une tâche.
+
+Pour bien le distinguer du reste du contenu, le bouton sera placé **dans l’en-tête** 
+(*header*) de la vue formulaire.
+En effet, Odoo permet d’ajouter des boutons d’action dans cette zone pour faciliter 
+l’accès à certaines fonctions métiers. N'hésitez pas
+[à consulter la documentation](https://www.odoo.com/documentation/18.0/developer/reference/user_interface/view_architectures.html#header-display-workflow-buttons-and-a-status)
+à ce sujet.
+
+Créez ou modifiez le fichier XML de la vue de détail de votre modèle (`todo.task`) 
+pour y insérer un bouton dans la balise `<header>` située à l’intérieur de la balise `<form>`.
+
+Comme vous le trouverez décrit [dans la documentation](https://www.odoo.com/documentation/18.0/developer/reference/user_interface/view_architectures.html#button-display-action-buttons),
+ce bouton sera configuré avec un attribut `name` correspondant au nom de la méthode 
+Python qui sera appelée lors du clic 
+et un attribut `type="object"` indiquant qu’il s’agit d’un appel à une méthode du modèle.
+
+```xml title="views/res_partner_view.xml" ins={6-9}
+<record id="view_form_todo_task" model="ir.ui.view">
+    <field name="name">To-do Task Form</field>
+    <field name="model">todo.task</field>
+    <field name="arch" type="xml">
+        <form>
+            <header>
+                <button name="do_clear_done" type="object"
+                    string="Clear Done" />
+            </header>
+            <sheet>
+                <group name="group_top">
+                    <group name="group_left">
+                        <field name="name" />
+                        <field name="user_id" />
+                        <field name="is_done" />
+                    </group>
+                    <group name="group_right">
+                        <field name="date_deadline" />
+                        <field name="team_ids" widget="many2many_tags" />
+                        <field name="active" readonly="1" />
+                    </group>
+                </group>
+            </sheet>
+        </form>
+    </field>
+</record>
+```
+
+Une fois le bouton ajouté, **mettez à jour votre module**, puis ouvrez la vue de détail d’une tâche :
+vous verrez apparaître le bouton dans la barre supérieure du formulaire.
+
+## Ajouter la logique associée au bouton
+
+Lorsque l’utilisateur clique sur le bouton ajouté dans la vue de détail, 
+Odoo exécute une **méthode Python** du modèle correspondant.
+
+Dans votre cas, vous allez créer une méthode appelée `do_clear_done` 
+dans le modèle `todo.task`.
+Cette méthode sera invoquée automatiquement grâce à l’attribut `name="do_clear_done"` 
+défini sur le bouton.
+
+```python title="todo_task_model.py"
+def do_clear_done(self):
+    for task in self:
+        if task.active:
+            task.active = False
+    return True
+```
+
+La méthode prend comme paramètre `self`, qui représente les enregistrements concernés par l’action :
+- Si le bouton est cliqué depuis une **vue de détail**, `self` contient une **seule instance** du modèle (la tâche affichée);
+- Si le bouton est cliqué depuis une **vue liste**, `self` peut contenir **plusieurs instances** (plusieurs tâches sélectionnées).
+
+L’objectif de la méthode `do_clear_done` est de désactiver les tâches terminées.
+
+Une fois la méthode ajoutée, **mettez à jour votre module** et 
+testez le comportement du bouton dans l’interface Odoo.
+
+<Aside icon="magnifier" title="Exercice">
+
+Expliquez en quelques mots pourquoi la méthode `do_clear_done`
+utilise une boucle sur le paramètre `self` ?
+
+</Aside>
+
+## Ajouter des logs
+
+Pour tracer l’activité de votre modèle et de la méthode appelée par le bouton, vous allez 
+ajouter des messages de log. Au début du fichier Python contenant votre modèle, ajoutez 
+l’import `import logging`. Déclarez ensuite un logger global suivant la convention Odoo 
+pour cet attribut : `_logger = logging.getLogger(__name__)`.
+
+Placez un message d’information dans le corps de la classe afin qu’un premier 
+log apparaisse lors du chargement du modèle :
+`_logger.info('----> TodoTask initialisation %s', __name__)`.
+Ce log est exécuté quand le fichier Python est importé par Odoo 
+(au démarrage ou au rechargement du module).
+
+<Aside icon="magnifier" title="Exercice">
+
+Que va afficher le `__name__` ?
+
+</Aside>
+
+Ajoutez des messages de log à l’intérieur de la méthode appelée par le bouton (`do_clear_done`) 
+pour tracer son exécution et ses décisions :
+  - `_logger.info('---->  TodoTask do_clear_done met active à false')` (lorsqu’on change l’état)
+  - `_logger.info('---->  TodoTask do_clear_done  est déjà à false')` (si aucune modification)
+
+<Aside>
+Comme pour les autres logger que vous avez rencontrés, le niveau de log peut être adapté 
+à la situation. Utilisez : 
+- `_logger.info(...)` pour des informations générales; 
+- `_logger.debug(...)` pour du debug;
+- `_logger.error(...)` pour des erreurs.
+</Aside>
+
+Vous trouverez ci-dessous la classe `TodoTask` résultant de ces modifications.
+
+```python title="todo_task_model.py" ins={3,5,10,25-27}
+from odoo import api, fields, models
+
+import logging
+
+_logger = logging.getLogger(__name__)
+
+class TodoTask(models.Model):
+    _name = 'todo.task'
+
+    _logger.info('----> TodoTask initialisation %s', __name__)
+    name = fields.Char(help="What needs to be done?")
+    is_done = fields.Boolean('Done?')
+    active = fields.Boolean('Active?', default=True)
+    date_deadline = fields.Date('Deadline')
+    user_id = fields.Many2one(
+        'res.users',
+        string='Responsible',
+        default=lambda s: s.env.user)
+    team_ids = fields.Many2many('res.partner', string='Team')
+
+    def do_clear_done(self):
+        for task in self:
+            if task.active:
+                task.active = False
+                _logger.info('---->  TodoTask do_clear_done met active à false')
+            else:
+                 _logger.info('---->  TodoTask do_clear_done  est déjà à false')
+        return True
+```
+
+<Aside icon="magnifier" title="Exercice">
+
+Faut-il mettre à jour votre module pour que ces mises à jourts python soient prises en compte ?
+Si non, expliquez pourquoi.
+
+</Aside>
+
+## Ajouter une exception
+
+Dans certains cas, vous souhaiterez avertir l’utilisateur lorsqu’une action 
+n’est pas permise ou qu’une condition particulière est rencontrée.
+Odoo propose pour cela la classe **`exceptions.UserError`**, 
+qui affiche une **boîte de dialogue d’erreur** à l’écran.
+
+Pour mettre en place ces boîtes de dialogues, vous devez
+**importer la classe d’exception** dans votre fichier Python du modèle
+c'est à dire y ajoutez `exceptions` aux imports depuis `odoo`.
+
+Ensuite à l’intérieur de votre méthode `do_clear_done`, vous pouvez lever une exception avec :
+`raise exceptions.UserError("un message d’erreur")`
+
+Lorsqu’une exception `UserError` est levée, Odoo affiche automatiquement 
+une **fenêtre pop-up** avec le message fourni.
+L’exécution de la méthode s’interrompt et aucune modification n’est appliquée 
+tant que l’utilisateur n’a pas validé le message.
+
+
+```python title="todo_task_model.py" mark={1,27}
+from odoo import api, fields, models, exceptions
+
+import logging
+
+_logger = logging.getLogger(__name__)
+
+class TodoTask(models.Model):
+    _name = 'todo.task'
+
+    _logger.info('----> JLC TodoTask init %s', __name__)
+    name = fields.Char(help="What needs to be done?")
+    is_done = fields.Boolean('Done?')
+    active = fields.Boolean('Active?', default=True)
+    date_deadline = fields.Date('Deadline')
+    user_id = fields.Many2one(
+        'res.users',
+        string='Responsible',
+        default=lambda s: s.env.user)
+    team_ids = fields.Many2many('res.partner', string='Team')
+
+    def do_clear_done(self):
+        for task in self:
+            if task.active:
+                task.active = False
+                _logger.info('JLC TodoTask do_clear_done set active to false')
+            else:
+                raise exceptions.UserError("La tache est déjà inacive")
+        return True
+```
+
+<Aside>
+Odoo propose différentes boîtes de dialogues à utilisez suivant votre besoin : 
+
+- Utilisez `UserError` pour les erreurs fonctionnelles ou d’usage;
+- Utilisez `ValidationError` pour les contraintes spécifiques sur les données;
+- Réservez les exceptions techniques (ex. `Exception`) aux cas imprévus.
+</Aside>

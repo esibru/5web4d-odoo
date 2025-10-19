@@ -4,4 +4,183 @@ description: Odoo API
 ---
 import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
 
-![Description de l'image](../../../assets/work-in-progress.jpeg)
+Vous allez apprendre à communiquer avec Odoo à distance à l’aide de son API XML-RPC.
+Grâce à cette interface, un script Python peut :
+- se connecter à une instance Odoo;
+- vérifier les droits d’accès aux modèles;
+- lire, créer ou supprimer des enregistrements.
+
+Le tutoriel ci-dessous va vous guider paps à pas dans la rédaction d'un script
+utilisant cette API.
+
+<Aside>
+Un appel XML-RPC est un protocole de communication qui permet à un programme 
+de demander à un serveur d’exécuter des **méthodes** distantes via le réseau.
+</Aside>
+
+## Créer un script
+
+Commencez par créer un fichier Python à la racine de votre module intitulé `call_task_api.py`.
+
+Ce script sera utilisé pour interagir avec votre base de données Odoo.
+La première étape dans la rédaction de script consiste à importer la bibliothèque 
+XML-RPC via les instructions :
+
+```python
+import xmlrpc.client
+```
+
+Ensuite, définissez dans le script des variables globales 
+contenant les paramètres de connexion à votre instance locale d’Odoo :
+
+```python
+url = "http://localhost:8069"
+db = "dev01"
+username = 'admin'
+password = "admin"
+```
+
+<Aside>
+Adaptez ces paramètres à votre propre configuration (nom de base de données, utilisateur, mot de passe).
+</Aside>
+
+## Connexion et authentification
+
+Pour que le script puisse dialoguer avec Odoo, vous devez le modifier avec les instructions ci-dessous:
+- récupération de la version du serveur, permettant de vérifier que la connexion fonctionne;
+    ```python
+    common = xmlrpc.client.ServerProxy('{}/xmlrpc/2/common'.format(url))
+    print("Version : ", common.version())
+    ```
+- authentification de l’utilisateur à l’aide de ses identifiants;
+    ```python
+    uid = common.authenticate(db, username, password, {})
+    ```
+- connection au service XML-RPC des modèles (object).
+    ```python
+    models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
+    ```
+
+Chaque étape utilise la classe `ServerProxy` de la librairie `xmlrpc.client`
+pour créer une passerelle entre votre script et Odoo.
+
+## Vérification des droits
+
+Avant toute opération, il est essentiel de vérifier si l’utilisateur 
+connecté dispose des droits nécessaires sur le modèle `todo.task`.
+
+L’API XML-RPC d’Odoo permet de le faire via la méthode `check_access_rights`.
+
+```python
+hasRight = models.execute_kw(
+    db, uid, password,
+    'todo.task', 'check_access_rights',
+    ['read'], {'raise_exception': False}
+)
+```
+
+Les paramètres passés à cet API peuvent s'interpréter comme ci-dessous : 
+
+| Paramètre  | Description                                    | Exemple                      |
+| ---------- | ---------------------------------------------- | ---------------------------- |
+| `db`       | Nom de la base de données Odoo cible           | `"dev01"`                    |
+| `uid`      | Identifiant de l’utilisateur exécutant l’appel | `1` (admin)                  |
+| `password` | Mot de passe de l’utilisateur                  | `"admin"`                    |
+| `model`    | Nom technique du modèle Odoo sur lequel agir   | `'todo.task'`                |
+| `method`   | Méthode du modèle à appeler via XML-RPC        | `'check_access_rights'`      |
+| `args`     | Liste d’arguments passés à la méthode          | `['read']`                   |
+| `kwargs`   | Dictionnaire d’options supplémentaires         | `{'raise_exception': False}` |
+
+
+Si les droits sont insuffisants, modifiez votre script pour qu'il affiche 
+un message d’erreur et arrête son exécution.
+
+<Aside icon="magnifier" title="Exercice">
+
+Pouvez-vous devinez dans quelle classe est écrit le code 
+de la méthode `check_access_rights` ?
+
+</Aside>
+
+## Premier CRUD
+
+Votre est script est prêt à implémenter un CRUD sur le modèle `todo.task`.
+
+Si l'utilisateur possède les droits suffisants demandez au script de
+lire les tâches existantes via l'API des modèles :
+
+```python
+tasks = models.execute_kw(db, uid, password,
+    'todo.task', 'search_read', [[]])
+print("Nombre de tâches ", len(tasks))
+```
+
+<Aside icon="magnifier" title="Exercice">
+
+Quels paramètres pourriez-vous passer à la liste d’arguments placée à vide
+dans l'exemple précédent `[[]]` ?
+
+</Aside>
+
+Ensuite pour créer une nouvelle tâche, ajoutez un nouvel appel à l'API des modèles.
+Attention les paramètres passés à l'API 
+sont différents, mais la structure reste identique : 
+
+```python
+id_created = models.execute_kw(db, uid, password,
+    'todo.task', 'create',
+    [{'name': 'Test des appels XML-RPC'}])
+print("ID créé : ", id_created)
+```
+
+Dans ce cas l'API retourne l'identifiant de l'objet créé.
+Affichez les données ajoutées en relisant les tâches via :
+
+```python
+tasks = models.execute_kw(db, uid, password,
+    'todo.task', 'search_read', [[]])
+```
+
+Et affichez les détails grâce à une boucle comme présenté ci-dessous :
+
+```python
+for task in tasks:
+    print(" - ID : ", task.get("id"))
+    print(" - Nom : ", task.get("name"))
+    print(" - Date de fin : ", task.get("date_deadline"))
+    print(" - Création : ", task.get("create_date"))
+```
+
+Supprimez la tâche créée via son identifiant via un appel à l'API des modèles
+comme : 
+
+```python
+models.execute_kw(db, uid, password,
+    'todo.task', 'unlink', [[id_created]])
+```
+
+## Validation et expérimentation
+
+Une fois votre script complet :
+- Exécutez-le dans votre terminal pour observer les résultats;
+- Vérifiez dans Odoo que les tâches ont bien été créées ou supprimées;
+- Testez avec différents utilisateurs et modèles pour comprendre les différences de droits d’accès
+(créez de nouveaux utilisateurs si besoin).
+
+<Aside icon="pencil" title="Exercice">
+Améliorez votre script `call_task_api.py` afin de le rendre plus flexible, réutilisable et robuste.
+Retravaillez le script pour qu’il :
+- charge les paramètres de connexion dynamiquement
+    - soit depuis un fichier `.env`;
+    - soit en les demandant directement à l’utilisateur via le prompt;
+- structure le code en fonctions ou classes pour éviter la répétition et améliorer la lisibilité du script;
+- gère les erreurs proprement
+    - en utilisant des blocs `try / except` pour intercepter les erreurs de connexion ou d’authentification;
+    - en affichant des messages explicites à l’utilisateur;
+- recherche un partenaire par son nom
+    - utilisez l’API XML-RPC pour interroger le modèle `res.partner`;
+    - récupérez l’identifiant (`id`) du partenaire trouvé;
+- crée une tâche associée à ce partenaire
+    - en utilisant le modèle `todo.task`;
+    - en définissant le partenaire trouvé comme responsable de la tâche.
+</Aside>
