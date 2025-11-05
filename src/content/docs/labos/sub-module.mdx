@@ -7,8 +7,7 @@ import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
 Un **sous-module** représente une **extension** fonctionnelle ou technique qui vient compléter un module existant.
 Autrement dit, il s’agit d’un module dépendant d’un autre, destiné à enrichir, modifier ou spécialiser 
 ses fonctionnalités sans altérer directement son code source. 
-Cette approche favorise la **modularité**, la réutilisation et la maintenabilité du code, 
-des principes essentiels dans le développement logiciel professionnel.
+Cette approche favorise la **modularité**, la réutilisation et la maintenabilité du code.
 
 Un sous-module est souvent utilisé pour :
 
@@ -17,13 +16,13 @@ Un sous-module est souvent utilisé pour :
 - Séparer des développements spécifiques afin de préserver la stabilité du module principal.
 
 Sur le plan technique, le développement d’un sous-module suit la même structure qu’un module classique : 
-- un dossier contenant un fichier de manifeste (__manifest__.py);
+- un dossier contenant un fichier manifeste;
 - des modèles Python;
 - des vues XML;
 - des règles d’accès.
 
 La différence majeure réside dans la déclaration des dépendances : 
-le sous-module indique explicitement **le module parent** dans la clé depends de son **manifeste**. 
+le sous-module indique explicitement **le module parent** dans la clé `depends` de son **manifeste**. 
 Ainsi, Odoo charge d’abord le module parent, puis le sous-module, ce qui permet à ce dernier 
 de surcharger ou d’étendre les éléments existants (modèles, vues, actions, menus).
 
@@ -31,7 +30,7 @@ de surcharger ou d’étendre les éléments existants (modèles, vues, actions,
 
 Nous souhaitons **étendre** le module de gestion des tâches avec de nouvelles fonctionnalités. 
 Pour ce faire, vous allez créer un **sous-module** intitulé `todo_stage` qui va permettre d'étendre 
-le module de base **sans modifier** son code. Afin de démarrer cette extension :
+le module de gestion des tâches **sans modifier** son code. Afin de démarrer cette extension :
 
 1. **Créez** un nouveau module via la commande `scaffold`
 
