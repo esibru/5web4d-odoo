@@ -9,18 +9,18 @@ en personnalisant l’interface via des extensions des menus et des vues.
 
 ## Les menus
 
-Vous allez ajouter un nouveau sous-menu au menu créer dans le module parent.
+Ajoutez un nouveau sous-menu au menu créé dans le module parent.
 
 <Aside icon="pencil" title="Exercice">
 
 **Créez** le fichier `todo_stage/views/todo_menu.xml`.
 N’oubliez pas de l’ajouter dans le manifest (`data`) pour qu’Odoo charge le fichier XML.
 
-Ajoutez une action (`ir.accessctions.act_window`) permettant d'afficher la vue list et formulaire du modèle
-tag. Inspirez-vous des actions que vous avez développées dans le module parent.
+Ajoutez une action (`ir.actions.act_window`) permettant d'afficher la vue liste et formulaire du modèle
+tag. Inspirez-vous des actions déjà définies dans le module parent.
 
-Ajoutez ensuite une nouvelle option au menu Configuration utilisant l'action que vous venez de créer.
-Cliquer sur ce menu permet d'afficher la liste des tags.
+Ajoutez une nouvelle entrée sous le menu **Configuration** utilisant l’action que vous venez de créer.
+Cliquer sur ce menu doit permettre d’afficher la liste des tags
 
 Les menus existants du module principal doivent rester visibles.
 
@@ -29,7 +29,7 @@ Les menus existants du module principal doivent rester visibles.
 ## La liste des tâches
 
 Pour personnaliser la liste des tâches, commencez par créer le fichier `todo_stage/views/todo_view.xml`.
-Ajoutez ensuite la vue liste des tâches :
+Dans le module parent la vue liste des tâches est implémentée comme suit :
 
 ```xml
 <record id="view_tree_todo_task" model="ir.ui.view">
@@ -45,15 +45,14 @@ Ajoutez ensuite la vue liste des tâches :
 </record>
 ```
 
-Elle est pour l'instant identique à l'originale.
+Dans Odoo, les vues peuvent soit être **héritées**, soit être **complètement réécrites**.
 
+- La réécriture complète est particulièrement utile lorsque la vue d'origine est **simple**.
+- Le champ qui permet de contrôler la réécriture d'une vue est : `<field name="priority">`.
 
-Dans Odoo les vues peuvent être héritées mais aussi complètement réécrites.
-Cette réécriture est utile surtout si la vue est simple.
-Le champs qui permet de réécrire une vue est `<field name="priority">`.
-Par défaut chaque vue à une priorité fixée à 16.
-Si vous ajoutez ce champs avec une valeur inférieure dans votre nouvelle vue, elle prendra la place
-de la vue initiale.
+Par défaut, chaque vue possède une priorité de 16.
+Si vous créez une nouvelle vue avec ce champ et que vous lui attribuez une valeur inférieure à 16, 
+votre vue prendra la place de la vue initiale et sera affichée à la place de celle d'origine.
 
 Ajoutez le champ priorité avec la valeur 15 et supprimez le champs `date_deadline` :
 
