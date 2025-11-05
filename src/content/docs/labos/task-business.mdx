@@ -28,7 +28,7 @@ pour implémenter une extension.
 
 1. Créez le fichier `todo_stage/models/todo_task_model.py`
 1. Ajoutez la classe `TodoTask` qui **hérite** de la classe `TodoTask` du module principal. Quel mot clé allez-vous utiliser ?
-1. Ajoutez un attribut entier intitulé `effort_estimate` représentant le temps estimé en jours pour réaliser une tâche. Aucune valeur par défaut n'est attendue.
+1. Ajoutez un attribut entier intitulé `effort_estimate` représentant le temps estimé en jours pour réaliser une tâche. Aucune valeur par défaut n'est attendue. Vous pouvez utiliser un type flottant si vous le souhaitez.
 1. Mettez à jour votre module et vérifiez que les mises à jours ont été prises en compte en consultant la structure des données via le mode développeur.
 
 N’oubliez pas de mettre à jour `__init__.py` pour inclure ce fichier.
@@ -37,14 +37,17 @@ N’oubliez pas de mettre à jour `__init__.py` pour inclure ce fichier.
 
 ## Association n-m
 
-Ce second exercice vous permet de revoir l'implémentation des associations en associant 
+Ce second exercice vous permet de revoir l'implémentation des associations en liant 
 les tâches aux tags et réciproquement, l'association étant bidirectionnelle.
 Prenez attention aux **conventions de nommage** des attributs.
 
 <Aside icon="pencil" title="Exercice">
 
 Dans le modèle `todo.task` ajouter un attribut `tag_ids` qui est une relation
-vers les tags créés dans ce sous-module. Quel est le mot clé qui convient (`Many2One`, `One2Many`, `Many2Many`) ?
+vers les tags créés dans ce sous-module. 
+
+Quel est le mot clé qui convient (`Many2One`, `One2Many`, `Many2Many`) ?
+
 Le nom de cette relation est **Tags** et aucune valeur par défaut n'est attendue.
 
 Ajoutez ensuite dans le modèle des tags la relation réciproque via un attribut `task_ids`.
