@@ -4,211 +4,58 @@ description: Docs intro
 ---
 import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
 
-![Description de l'image](../../../assets/work-in-progress.jpeg)
+Un **sous-module** représente une **extension** fonctionnelle ou technique qui vient compléter un module existant.
+Autrement dit, il s’agit d’un module dépendant d’un autre, destiné à enrichir, modifier ou spécialiser 
+ses fonctionnalités sans altérer directement son code source. 
+Cette approche favorise la **modularité**, la réutilisation et la maintenabilité du code, 
+des principes essentiels dans le développement logiciel professionnel.
 
+Un sous-module est souvent utilisé pour :
 
-{/* 
-# Logique métier, sécurité et sous-module
+- Étendre un module standard d’Odoo (par exemple, ajouter un champ ou une vue spécifique à un module de facturation);
+- Adapter une fonctionnalité à un contexte particulier (comme une localisation comptable propre à un pays);
+- Séparer des développements spécifiques afin de préserver la stabilité du module principal.
 
-> **Cours** : Laboratoire de Développement collaboratif  
-> **Année académique** : 2022–2023  
-> **Code** : ERPG5  
-> **Enseignants** : JLC - SDR  
+Sur le plan technique, le développement d’un sous-module suit la même structure qu’un module classique : 
+- un dossier contenant un fichier de manifeste (__manifest__.py);
+- des modèles Python;
+- des vues XML;
+- des règles d’accès.
 
----
+La différence majeure réside dans la déclaration des dépendances : 
+le sous-module indique explicitement **le module parent** dans la clé depends de son **manifeste**. 
+Ainsi, Odoo charge d’abord le module parent, puis le sous-module, ce qui permet à ce dernier 
+de surcharger ou d’étendre les éléments existants (modèles, vues, actions, menus).
 
-## Consignes générales
+## Le module `todo_stage`
 
-Toutes les informations nécessaires à la réalisation des exercices sont disponibles dans le cours théorique :
+Nous souhaitons **étendre** le module de gestion des tâches avec de nouvelles fonctionnalités. 
+Pour ce faire, vous allez créer un **sous-module** intitulé `todo_stage` qui va permettre d'étendre 
+le module de base **sans modifier** son code. Afin de démarrer cette extension :
 
-- [Développement d'un module : Héritage, Contraintes et Vues Avancées](https://poesi.esi-bru.be/mod/amanote/view.php?id=781)
-- [Développement d'un module : Sécurité, Wizard, Rapports et Tests unitaires](https://poesi.esi-bru.be/mod/amanote/view.php?id=782)
+1. **Créez** un nouveau module via la commande `scaffold`
 
-Les informations complémentaires sont accessibles via la documentation :
+2. **Mettez à jour le manifest** (`__manifest__.py`) de ce sous-module et **précisez** sa dépendance avec le module `todo_app` via l’option `depends` :
+    ```python
+    'depends': ['todo_app'],
+    ```
+    Pensez-vous qu'il soit normale que la dépendance au module `base` ait disparu ?
 
-- [Le manifest](https://www.odoo.com/documentation/17.0/developer/reference/backend/module.html)
-- [Modèle, attributs, méthodes](https://www.odoo.com/documentation/17.0/developer/reference/backend/orm.html)
-- [Les vues](https://www.odoo.com/documentation/17.0/developer/reference/user_interface/view_records.html)
-- [La sécurité](https://www.odoo.com/documentation/17.0/developer/reference/backend/security.html)
+<Aside icon="pencil" title="Exercice">
 
----
+Installez le module `todo_stage`. 
+Comment allez-vous vérifier que le module est réellement installé ?
 
-## 1. Logique métier associée au bouton
+</Aside>
 
-### Une nouvelle méthode
+## Gestion des images
 
-Dans le fichier `todo_task_model.py`, ajoutez :
+Dans ce module, des images pourront être associées à des tâches.
+**Téléchargez** le dossier `static` de PoEsi et placez-le dans votre module.
+Vous y trouverez le fichier `description/icon.png` ainsi que des images que nous associeront 
+aix différentes tâches par la suite.
 
-```python
-from odoo import api
-```
 
-Prenez connaissance des décorateurs disponibles et expliquez le rôle de `@api.depends`.
 
-Ajoutez une méthode `do_clear_done` à la classe `TodoTask` qui met l’attribut `active` à `False`.  
-Ajoutez un bouton dans la vue formulaire pour appeler cette méthode.
 
 
-### Réécrire une méthode existante
-
-Réécrivez la méthode `write` afin d’activer automatiquement les tâches inactives lorsqu’une mise à jour est effectuée.
-
-Étapes de vérification :
-1. Démarrez Odoo
-2. Créez une tâche
-3. Cliquez sur le bouton **Clear Done**
-4. Filtrez les tâches inactives
-5. Modifiez le nom de la tâche et observez le changement du statut `active`.
-
-### Ajouter des informations dans les logs
-
-Ajoutez l’import :
-
-```python
-import logging
-_logger = logging.getLogger(__name__)
-```
-
-Modifiez `do_clear_done` et `write` pour afficher un message dans les logs lorsque le statut `active` change.
-
-> 💡 **Astuce** : Vous pouvez afficher `__name__` dans les logs pour comprendre son rôle.
-
-### Exception
-
-Ajoutez l’import :
-
-```python
-from odoo import exceptions
-```
-
-Vous pouvez lever des exceptions comme suit :
-
-```python
-raise exceptions.Warning('Warning message')
-raise exceptions.ValidationError('Not valid message')
-```
-
-Ajoutez un `Warning` dans `do_clear_done` si la tâche n’est pas active.
-
----
-
-## 2. Sécurité
-
-Si aucune règle n’est activée, le log affiche :  
-> The model todo.task has no access rules, consider adding one.
-
-### Créer un nouvel utilisateur
-
-Créez :  
-- **Nom** : SpongeBob SquarePants  
-- **Email** : SpongeBob@he2b.be  
-- **Application Access** : employee  
-- **Mot de passe** : pineapple  
-
-Connectez-vous avec ce nouvel utilisateur et constatez qu’il n’a pas accès au module.
-
-### Créer un nouveau groupe
-
-Créez le fichier `security.xml` et ajoutez un groupe nommé `carton_caracters`.  
-N’oubliez pas de l’ajouter dans la section `data` du manifest.
-
-Ajoutez SpongeBob au groupe **Cartoon manager** dans :  
-`Settings > Users and Companies > Users`
-
-
-### Donner les accès à un groupe
-
-Modifiez `security/ir.model.access.csv` pour donner les droits complets au groupe `carton_caracters` sur `todo.task`.
-
-### Créer un utilisateur à l’installation
-
-Ajoutez l’utilisateur `Eugene Krabs` dans `security.xml` :
-
-```xml
-<record id="task_manager" model="res.users">
-  <field name="name">Eugene Krabs</field>
-  <field name="email">eugene.krabs@he2b.be</field>
-  <field name="password">money</field>
-  <field name="login">eugene.krabs@he2b.be</field>
-  <field name="employee">True</field>
-  <field name="groups_id" eval="[(6,0,[ref('base.group_user'),ref('todo_app.carton_caracters')])]"/>
-</record>
-```
-
----
-
-## 3. Créer un sous-module
-
-Créez un sous-module `todo_stage` dépendant du module `todo_app` :
-
-```python
-'depends': ['todo_app'],
-```
-
-Téléchargez le dossier `static` de PoEsi et placez-le dans votre module.
-
----
-
-## 4. Créer le modèle Tag
-
-Créez `todo_stage/models/todo_task_tag_model.py` :
-
-```python
-class Tag(models.Model):
-    _name = "todo.task.tag"
-    _description = "To-do Tag"
-
-    name = fields.Char("Tag Name")
-```
-
----
-
-## 5. Ajouter des fonctionnalités à Task
-
-Créez `todo_stage/models/todo_task_model.py` :
-
-```python
-class TodoTask(models.Model):
-    _inherit = "todo.task"
-    effort_estimate = fields.Integer("Effort Estimate")
-    tag_ids = fields.Many2many("todo.task.tag", string="Tags")
-```
-
-Ajoutez la relation inverse dans `Tag` :
-
-```python
-task_ids = fields.Many2many("todo.task", string="Tasks")
-```
-
----
-
-## 6. Compléter le modèle Task
-
-Ajoutez les champs suivants :
-
-| Nom | Type | Description |
-|------|------|-------------|
-| `desc` | Char | Description courte |
-| `state` | Selection | États : `draft`, `open`, `done` |
-| `docs` | Html | Documentation détaillée |
-| `date_created` | Datetime | Date de création |
-| `image` | Binary | Image associée |
-
----
-
-## 7. Vue et menus
-
-Créez `todo_stage/views/todo_menu.xml` et `todo_stage/views/todo_view.xml`.  
-Ajoutez le menu et la vue liste des tâches.
-
-Ajoutez un filtre de regroupement par utilisateur via la balise `<filter>`.
-
----
-
-## 8. Solutions
-
-Les solutions des exercices sont disponibles :  
-- [Exercice 02](https://git.esi-bru.be/ERPG5/odoo/exercice02/repository/archive.zip)  
-- [Exercice 03](https://git.esi-bru.be/ERPG5/odoo/exercice03)
-
-*/}
