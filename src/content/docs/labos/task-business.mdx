@@ -1,7 +1,77 @@
 ---
-title: Odoo - Sous-module task - Règles métiers
+title: Odoo - Extension du modèle task
 description: Docs intro
 ---
 import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
 
-![Description de l'image](../../../assets/work-in-progress.jpeg)
+Vous allez étendre le modèle `todo.task` du module parent afin d’ajouter de nouvelles 
+fonctionnalités permettant de mieux gérer les tâches.
+L’objectif des exercices ci-dessous est de créer des relations et attributs supplémentaires :
+
+- une association avec le modèle “Tag” pour catégoriser les tâches;
+- une estimation du temps nécessaire pour réaliser la tâche;
+- une description à afficher pour fournir plus de détails;
+- un état de la tâche (brouillon, en cours, terminée);
+- une documentation au format HTML pour un contenu enrichi;
+- une date de création pour suivre la chronologie des tâches;
+- une image associée à la tâche.
+
+Cet exercice vous permettra de pratiquer l’extension d’un modèle existant dans Odoo, 
+en ajoutant à la fois des champs simples, des champs relationnels et des champs spécialisés. 
+
+## Estimation de la durée de la tâche
+
+Ce premier exercice vous permet de vous rappeler la syntaxe a utiliser
+pour implémenter une extension.
+
+<Aside icon="pencil" title="Exercice - Rappel sur l'héritage">
+
+1. Créez le fichier `todo_stage/models/todo_task_model.py`
+1. Ajoutez la classe `TodoTask` qui **hérite** de la classe `TodoTask` du module principal. Quel mot clé allez-vous utiliser ?
+1. Ajoutez un attribut entier intitulé `effort_estimate` représentant le temps estimé en jours pour réaliser une tâche. Aucune valeur par défaut n'est attendue.
+1. Mettez à jour votre module et vérifiez que les mises à jours ont été prises en compte en consultant la structure des données via le mode développeur.
+
+N’oubliez pas de mettre à jour `__init__.py` pour inclure ce fichier.
+
+</Aside>
+
+## Association n-m
+
+Ce second exercice vous permet de revoir l'implémentation des associations en associant 
+les tâches aux tags et réciproquement, l'association étant bidirectionnelle.
+Prenez attention aux **conventions de nommage** des attributs.
+
+<Aside icon="pencil" title="Exercice">
+
+Dans le modèle `todo.task` ajouter un attribut `tag_ids` qui est une relation
+vers les tags créés dans ce sous-module. Quel est le mot clé qui convient (`Many2One`, `One2Many`, `Many2Many`) ?
+Le nom de cette relation est **Tags** et aucune valeur par défaut n'est attendue.
+
+Ajoutez ensuite dans le modèle des tags la relation réciproque via un attribut `task_ids`.
+
+**Mettez à jour** votre module et **vérifiez** via l’interface développeur.
+
+</Aside>
+
+
+## De nouveaux types d'attributs
+
+Vous allez continuer l'extension du modèle `todo.task` en ajoutant des attributs
+avec des types que nous n'avons pas encore introduit.
+Ces nouveaux types sont accessibles [via la documentation](https://www.odoo.com/documentation/19.0/developer/reference/backend/orm.html#fields).
+
+<Aside icon="pencil" title="Exercice">
+Ajoutez les attributs suivants à l’extension du modèle `todo.task` :
+
+| Nom | Type                  | Description                                    | Valeur par défaut          |
+|------------------|---------------------|-----------------------------------------------|----------------------------|
+| `desc`           | Chaîne de caractères | Description de la tâche                        | Aucune                     |
+| `state`          | Liste déroulante      | États possibles d'une tâche (`draft`, `open`, `done`) | `draft`                    |
+| `docs`           | HTML                 | Documentation détaillée de la tâche            | Aucune                     |
+| `date_created`   | Date et heure        | Moment de création de la tâche                 | Moment courant             |
+| `image`          | Binaire              | Image associée à la tâche                       | Aucune                     |
+
+**Mettez à jour** votre module et **vérifiez** via l’interface développeur.
+
+</Aside>
+
