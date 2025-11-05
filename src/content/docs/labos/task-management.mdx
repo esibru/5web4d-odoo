@@ -1,7 +1,24 @@
 ---
-title: Odoo - Sous-module task - Sécurité
+title: Odoo - Sécurité
 description: Docs intro
 ---
 import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
 
-![Description de l'image](../../../assets/work-in-progress.jpeg)
+Avant de manipuler votre nouveau modèle d'étiquette (tag) dans l’interface Odoo,
+il est nécessaire de **définir les droits d’accès** dans le fichier `ir.model.access.csv`
+de votre sous-module.
+
+Le module parent contient déjà un fichier similaire pour le modèle `todo.task`,
+que vous pouvez **prendre comme exemple** pour créer les règles d’accès à votre modèle.
+
+Cet exercice vous permettra de vous familiariser avec la syntaxe et la logique des fichiers
+`ir.model.access.csv`, et de vous assurer que vos utilisateurs peuvent **créer, lire, modifier et supprimer** 
+des tags tout en respectant la sécurité du système.
+
+<Aside icon="pencil" title="Exercice">
+
+Mettez à jour `ir.model.access.csv` pour donner accès au modèle `todo.task.tag`.
+
+N’oubliez pas de mettre à jour le manifest pour inclure ce fichier.
+
+</Aside>
