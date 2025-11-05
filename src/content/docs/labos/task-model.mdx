@@ -6,25 +6,19 @@ import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
 
 Vous allez créer un **nouveau** modèle **Tag** au sein du sous-module `todo_stage`.
 L’objectif est d’ajouter la gestion d’étiquettes (tags) qui n’existe pas dans le module initial.
-Cet exercice est aussi l’occasion de rappeler les étapes de création d’un modèle dans Odoo : 
-- définition de la classe Python;
-- création des vues XML;
-- intégration au menu.
 
 Vous verrez ainsi comment étendre les fonctionnalités d’un projet en ajoutant 
 un composant autonome dans un sous-module, sans modifier le code du module principal.
 
 <Aside icon="pencil" title="Exercice">
 
-Vous allez ajouter à vos tâches la possibilité d’avoir une liste de `tags`.  
-
 **Créez** le fichier `todo_stage/models/todo_task_tag_model.py`
 
 Ajoutez-y la classe `Tag` et commencez par définir les deux attributs hérités de `odoo.models.Model` :
 - `_name`  : nom technique du modèle
-- ` description` : description technique du modèle
+- `_description` : description technique du modèle
 
-Ensuite, ajoutez un attribut `name` de type chaîne de caractères qui représentera le nom de l'étiquette (du tag).
+Ensuite, ajoutez un attribut `name` de type chaîne de caractères qui représente le nom de l'étiquette (du tag).
 Aucun valeur par défaut n'est attendue pour cet attribut.
 
 Comme vous avez créé un nouveau fichier, **n’oubliez pas** de mettre à jour le fichier `__init__.py` du dossier `models`.
