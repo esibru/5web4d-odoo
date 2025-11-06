@@ -1,7 +1,278 @@
 ---
-title: Odoo - Importer des données de chargement
+title: Odoo - Importer des données
 description: Docs intro
 ---
 import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
 
-![Description de l'image](../../../assets/work-in-progress.jpeg)
+Le fichier `demo.xml` sert à injecter des données de démonstration dans Odoo.
+Cela vous permet de :
+- gagner du temps en générant automatiquement un jeu de données complet;
+- comprendre comment fonctionnent les modules et les modèles;
+- tester des fonctionnalités sans toucher à des données réelles.
+
+Dans la suite de cette section, vous allez apprendre la syntaxe XML pour insérer des données
+lors de l'installation de votre module.
+
+<Aside>
+Comme vous allez charger des données sur lesquelles il existe des contraintes, 
+il est possible que les données entrent en conflit avec des données existantes. 
+Soyez attentif aux messages d'erreur lors de la mise à jour de votre module.
+</Aside>
+
+## Insertion d'un record simple
+
+Commencez par **nettoyer** le fichier `demo/demo.xml` du module `todo_stage` pour qu'il ressemble à ceci :
+
+```xml
+<odoo>
+    <data noupdate="1">
+
+    </data>
+</odoo>
+```
+
+<Aside>
+A votre avis, quelle est l'utilité de l'option `noupdate` ? 
+
+Consultez la [documentation Odoo](https://www.odoo.com/documentation/18.0/reference/data.html) en cas de doute.
+</Aside>
+
+Dans le fichier `todo_stage/models/todo_task_tag_model.py`,
+vous avez défini un tag avec un nom et une liste de tâches : 
+
+```python
+name = fields.Char('Name')
+task_ids = fields.Many2many('todo.task', string='Tags')
+```
+
+Comme la liste des tâches peut être vide, vous allez commencer par insérer
+un tag avec uniquement un nom via une structure comme suit : 
+
+```xml
+<record model="todo.task.tag" id="todo_task_tag_00">
+    <field name="name">un joli nom de tag</field>
+</record>
+```
+
+- `record` indique à Odoo que l’on veut créer un enregistrement (une ligne) dans la base de données;
+- `model="todo.task.tag"` spécifie le modèle Odoo concerné, cela correspond au nom technique `_name = 'todo.task.tag'`, adaptez ce nom à votre implémentation;
+- `id="todo_task_tag_00"` est l’identifiant XML de l’enregistrement, il ne correspond pas forcément 
+à l’ID numérique (clé primaire) en base de données, mais à un identifiant logique qu'on peut réutiliser dans un fichier XML;
+- `<field name="name">un joli nom de tag</field>` indique la valeur à attribuer au champ `name` du modèle;
+- Vous pouvez ajouter autant de champs désiré dans le même `<record>`.
+
+<Aside icon="magnifier" title="Exercice">
+
+Ajoutez dans le fichier `demo.xml` du module `todo_stage` les trois tags suivants :
+
+| model           | id                  | name      |
+|-----------------|-------------------|-----------|
+| todo.task.tag    | todo_task_tag_01    | Technical |
+| todo.task.tag    | todo_task_tag_02    | Canceled  |
+| todo.task.tag    | todo_task_tag_03    | Urgent    |
+
+Mettez à jour votre module et **vérifiez** la présence de vos nouvelles données.
+
+Attention, vérifiez que le `manifest` fait bien mention du fichier `demo.xml`.
+
+</Aside>
+
+Pour insérer une ligne dans la table `res.partner`, il suffit de compléter le fichier `demo.xml` 
+en suivant le même principe, c'est à dire avec un `record` du type : 
+
+```xml
+<record model="res.partner" id="todo_partner_01">
+    <field name="name">un joli nom de partenaire</field>
+</record>
+```
+
+<Aside icon="magnifier" title="Exercice">
+
+Ajoutez dans le fichier `demo.xml` du module `todo_stage`  les trois partenaires suivants :
+
+| model         | id                 | name               |
+|---------------|------------------|------------------|
+| res.partner   | todo_partner_01   | Patrick Star      |
+| res.partner   | todo_partner_02   | Squidward Tentacles |
+| res.partner   | todo_partner_03   | Sandy Cheeks      |
+
+Seul le champ `name` doit être rempli. Les autres champs de `res.partner` 
+prendront leurs valeurs par défaut.
+
+Mettez à jour votre module et **vérifiez** la présence de vos nouvelles données.
+
+</Aside>
+
+## La balise field en détail : search, eval, file, CDATA
+
+L'objectif suivant est d'insérer une tâche comme celle-ci : 
+
+- `name` : Reinstall Odoo
+- `user_id` : id de l'utilisateur `eugene.krabs@he2b.be`
+- `date_deadline` : dans 4 jours
+- `is_done` : faux
+- `effort_estimate` : 5
+- `state` : draft
+- `desc` : Reinstall ODOO and update to 18.0
+- `tag_ids` : Technical
+- `team_ids` : Patrick Star, Squidward Tentacles et Sandy Cheeks
+- `image` : l'image 6 du dossier disponible sur PoEsi
+- `docs` : page web ci-dessous
+        ```html
+        <h2>Installation requirements</h2>
+        <br/>
+        <ul>
+            <li>postgres</li>
+            <li>python 3.5</li>
+            <li>less</li>
+            <li>WkHtmlToPdf</li>
+        </ul>
+        ```
+
+Avant de vous lancez dans la mise à jour de votre fichier `demo.xml`,
+il faut éclaircir quelques points.
+
+### Rechercher la valeur d'un champ : user_id
+
+Le champs `user_id` attend l'identifiant Odoo d'un utilisateur, un nombre entier, mais malheureusement vous ne possédez que
+l'adresse email de cet utilisateur. 
+Pour résoudre ce problème vous devez demander à Odoo d'effectuer une recherche dans ses utilisateurs
+et de retourner cet identifiant. Le `record` a écrire dans le `demo.xml` va contenir le champs suivant :
+
+```xml
+<field name="user_id" search="[('login','=','eugene.krabs@he2b.be')]"/>
+```
+
+La méthode `search` de la classe `model.Model` est appelée avec 3 paramètres,
+ce qui enclenche une recherche sur `res_users` (c'est le type de l'attribut `user_id`). 
+Ces 3 paramètres sont: 
+- le nom du champs de `res.users` surlequel faire la recherche : `login`
+- un opérateur, ici l'égalité
+- la valeur de l'email : `eugene.krabs@he2b.be`
+
+Cette syntaxe constitue ce qui est appelé un **domaine** dans Odoo.
+Les opérateurs utilisables au sein des domaines sont décrits [dans la documentation](https://www.odoo.com/documentation/18.0/developer/reference/backend/orm.html#search-domains),
+on y retrouve par exemple `=`,`!=`,`>`, `like`, `in`. 
+
+Le **premier résultat de la recherche** est utilisé comme valeur pour `user_id`.
+
+Cette manière de procéder permet de référencer dynamiquement un utilisateur sans se soucier de l’identifiant exact, 
+le fichier `demo.xml` devient facilement portable d'une base de données à l'autre.
+
+### Remarque 2 : Insérer une relation
+
+Le champ `tag_ids` correspond à une relation `Many2many`, c’est-à-dire une liste de tags associés à une tâche.
+Les tags à lier existent déjà dans la base de données grâce aux enregistrements définis plus haut dans le fichier `demo.xml`.
+Pour relier facilement une tâche à ces tags existants, on utilise l’attribut `eval`.
+
+<Aside>
+L’option `eval` permet à Odoo d’évaluer une expression Python directement dans un fichier XML.
+Cela offre la possibilité de manipuler les relations entre les enregistrements via une expression
+du genre : 
+
+```python
+eval="[(4, ref('todo_task_tag_01'), None)]"
+```
+</Aside>
+
+Les relations `Many2many` se manipulent via des tuples de la forme :
+
+```
+[(op, id, valeurs)]
+```
+
+- op : code de l’opération (entier)
+- id : ID de l’enregistrement à manipuler (souvent via `ref('xml_id')`)
+- valeurs : dictionnaire optionnel pour fournir des valeurs supplémentaires (souvent `None`)
+
+Les codes de l'opérations sont définis dans le code de la méthode write de `model.Model`.
+Voici leur signification : 
+
+| Code | Signification | Exemple | Description |
+|------|---------------|---------|-------------|
+| `0`  | **Créer un nouvel enregistrement** | `(0, 0, {'name': 'Tag A'})` | Crée un nouveau record et l’ajoute au champ Many2many. |
+| `1`  | **Mettre à jour un enregistrement existant** | `(1, ref('tag1'), {'name': 'Tag B'})` | Met à jour les champs de l’enregistrement existant. |
+| `2`  | **Supprimer un enregistrement existant** | `(2, ref('tag1'), None)` | Supprime le lien et l’enregistrement de la base. |
+| `3`  | **Dissocier sans supprimer** | `(3, ref('tag1'), None)` | Supprime uniquement le lien Many2many, l’enregistrement reste en base. |
+| `4`  | **Ajouter un lien vers un enregistrement existant** | `(4, ref('tag1'), None)` | Ajoute un enregistrement existant au champ Many2many. |
+| `5`  | **Supprimer tous les liens** | `(5, 0, None)` | Supprime tous les liens Many2many de ce champ. |
+| `6`  | **Remplacer les liens par une liste d’IDs** | `(6, 0, [ref('tag1'), ref('tag2')])` | Remplace tous les liens existants par les IDs fournis. |
+
+
+La fonction `ref()` permet de retrouver un enregistrement existant dans le XML grâce 
+à son identifiant technique (`xml_id`), par exemple `todo_task_tag_01`.
+
+Au final l’expression ci-dessous indique à Odoo d’ajouter un lien entre la tâche en cours de création 
+et le tag déjà défini dans la base de données.
+
+```xml
+<field name="tag_ids" eval="[(4, ref('todo_task_tag_01'), None)]"></field>
+```
+
+### Remarque 3 : Insérer une image ou un fichier
+
+Dans Odoo, certains champs peuvent contenir des images, lesquelles sont stockées 
+en base de données sous forme encodée en base64.
+
+Si vous souhaitez charger une image depuis un fichier lors de l’importation de données 
+(par exemple depuis un fichier `demo.xml`), vous pouvez utiliser l’attribut `file` dans la balise `<field>` :
+
+```xml
+<field name="image" type="base64" file="todo_stage/static/img/task04.png"/>
+```
+
+L’attribut `file` précise le chemin du fichier à importer, et l’option `type="base64"` 
+indique à Odoo de convertir automatiquement le fichier en base64 avant de l’enregistrer dans la base de données.
+
+### Remarque 4 : Insérer une page HTML
+
+Lorsque vous souhaitez insérer du contenu contenant des balises HTML (comme `<h2>`, `<ul>`) 
+dans un champ, il faut faire attention :
+les balises sont interprétées par le moteur XML et non comme du texte, ce qui provoque des erreurs.
+
+```xml
+<field name="docs">
+    <h2>Installation requirements</h2>
+    <br/>
+    <ul>
+        <li>postgres</li>
+        <li>python 3.5</li>
+        <li>less</li>
+        <li>WkHtmlToPdf</li>
+    </ul>
+</field>
+```
+
+Pour éviter ce problème, il faut protéger le contenu HTML en l’encadrant avec une balise spéciale : `<![CDATA[ ... ]]>`
+Le mot-clé `CDATA` signifie Character Data (données textuelles).
+Tout ce qui se trouve à l’intérieur est traité comme du texte brut, et non comme du XML.
+
+Cela permet d’inclure du HTML, des caractères spéciaux ou des sauts de ligne sans que l’XML considère ces balises comme invalides.
+
+```xml ins={2,11}
+<field name="docs">
+<![CDATA[
+    <h2>Installation requirements</h2>
+    <br/>
+    <ul>
+        <li>postgres</li>
+        <li>python 3.5</li>
+        <li>less</li>
+        <li>WkHtmlToPdf</li>
+    </ul>
+]]>
+</field>
+```
+
+## Insérer une tâche
+
+Maintenant que vous avez pris connaissance des différentes options de la balise `<field>`,
+vous pouvez réaliser l'exercice ci-dessous.
+
+<Aside icon="magnifier" title="Exercice">
+
+Ajoutez la tâche `Reinstall Odoo` dans votre `demo.xml`. Pour tester différents cas après installation, ajoutez deux autres tâches avec le statut `open` et `done`.
+
+Pour tester complètement votre fichier `demo.xml`, désinstallez votre module puis réinstallez-le.
+
+</Aside>

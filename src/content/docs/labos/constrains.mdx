@@ -1,7 +1,95 @@
 ---
-title: Django - Introduction
+title: Odoo - Contrainte
 description: Docs intro
 ---
 import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
 
-![Description de l'image](../../../assets/work-in-progress.jpeg)
+Il existe deux types de contraintes implémentables au sein d'Odoo : 
+Les contraintes SQL et les contraintes API.
+Le but de cette section est d'apprendre à utiliser ces deux types de contraintes.
+
+## Contraintes SQL
+
+Les contraintes SQL sont des règles définies directement dans la base de données pour assurer l'intégrité des données.
+Ce type de contrainte s'applique généralement à des tables, des colonnes, et peut restreindre les valeurs ou les relations 
+entre les données. 
+Odoo utilise SQL pour gérer ces contraintes lorsque vous définissez un champ.
+Ces contraintes sont appliquées directement au niveau de la base de données
+et  exécutées de manière uniforme pour toutes les connexions à la base de données, peu importe le module qui
+utilise vos tables.
+
+Dans Odoo, les contraintes SQL sont souvent appliquées via des déclarations de type unique ou foreign key.
+Par exemple, vous pouvez avoir un champ `Char` dans votre modèle avec une contrainte d'unicité pour garantir 
+qu'aucune valeur du champ ne soit dupliquée dans la base de données.
+
+Dans la classe produit ci-dessous, une contrainte SQL est utilisée pour s'assurer 
+que chaque code de produit soit unique dans la base de données.
+
+```python ins={8,9,10}
+class Product(models.Model):
+    _name = 'product.product'
+
+    name = fields.Char('Product Name', required=True)
+    code = fields.Char('Product Code', required=True, index=True)
+    price = fields.Float('Price')
+
+    _sql_constraints = [
+        ('product_code_unique', 'UNIQUE(code)', 'Le code produit doit être unique.')
+    ]
+```
+
+Chaque contrainte est définie sous forme d’un tuple à 3 éléments :
+
+| Position | Élément                                                      | Rôle                                                                                                                                                                        |
+| -------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1      | **Nom de la contrainte** (`'product_code_unique'`)           | Nom technique utilisé dans la base de données pour identifier la contrainte. Il doit être **unique dans le modèle**.                                                        |
+| 2      | **Expression SQL** (`'UNIQUE(code)'`)                        | La **règle SQL** elle-même. Ici, elle impose que la colonne `code` soit unique. On peut aussi utiliser d’autres contraintes comme `CHECK(...)` pour vérifier une condition. |
+| 3      | **Message d’erreur** (`'Le code produit doit être unique.'`) | Le **message affiché à l’utilisateur** si la contrainte est violée.                                                                                                         |
+
+
+Comme le mentionne [la documentation de Model](https://www.odoo.com/documentation/18.0/developer/reference/backend/orm.html#odoo.models.BaseModel._sql_constraints
+)
+ `_sql_constraints` est un attribut de `BaseModel`.
+
+<Aside>
+Attention depuis la version 19, les contraintes SQL 
+ont été remplacées par la notion de 
+`models.Constraint()`. Un exemple d'utilisation est disponible [dans la documentation](https://www.odoo.com/documentation/19.0/developer/reference/backend/orm.html#constraints-and-indexes).
+</Aside>
+
+## Contraintes api
+
+Les contraintes API d'Odoo sont des règles définies dans le code Python pour contrôler 
+l’intégrité des données au moment de l’exécution, avant l’insertion ou la mise à jour des données dans la base de données.
+
+Elles sont utilisées pour ajouter des validations complexes et 
+permettent des messages d’erreur personnalisés dans l’interface utilisateur..
+
+En reprenant l'exemple de la classe produit, on peut écritre une contrainte API 
+pour vérifier l'unicité du code produit avant de valider l'enregistrement.
+Si un autre produit avec le même code existe, une erreur de validation est levée.
+
+```python ins={8,9,10,11,12}
+class Product(models.Model):
+    _name = 'product.product'
+
+    name = fields.Char('Product Name', required=True)
+    code = fields.Char('Product Code', required=True)
+    price = fields.Float('Price')
+
+    @api.constrains('code')
+    def _check_code_unique(self):
+        for record in self:
+            if self.search([('code', '=', record.code), ('id', '!=', record.id)]):
+                raise ValidationError("Le code produit doit être unique.")
+```
+
+<Aside icon="magnifier" title="Exercice">
+
+Ajoutez une contrainte dans vos modules : 
+- pour que le nom d'un tag soit unique.
+- pour que le nom d'une tâche soit au minimum de 5 caractères.
+
+Faut-il choisir une contrainte API ou SQL ?
+
+</Aside>

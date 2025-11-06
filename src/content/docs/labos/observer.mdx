@@ -4,228 +4,135 @@ description: Docs intro
 ---
 import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
 
-![Description de l'image](../../../assets/work-in-progress.jpeg)
 
+Dans le cadre du développement d'applications Odoo, les **champs calculés**, 
+ainsi que les décorateurs `@api.depends` et `@api.onchange` améliorent l'expérience utilisateur. 
+Ces mécanismes permettent d'automatiser des actions, de recalculer des valeurs dynamiques 
+et de réagir à des interactions dans l'interface utilisateur, sans nécessiter de lourdes interventions manuelles. 
 
-{/* 
+Le but des exercices ci-dessous est de comprendre le fonctionnement de ces outils, mais sachez que
+toutes les informations sur la syntaxe de ces champs est disponible en ligne : 
+- [champs calculés et le décorateur api.depends](https://www.odoo.com/documentation/19.0/developer/reference/backend/orm.html#computed-fields)
+- [le décorateur api.onchange](https://www.odoo.com/documentation/19.0/developer/reference/backend/orm.html#odoo.api.onchange)
 
-# Contraintes et données d'installation
+## Champs calculés et @api.depends
 
-> **Cours** : Laboratoire de Développement collaboratif  
-> **Année académique** : 2022–2023  
-> **Code** : ERPG5  
-> **Enseignants** : JLC - SDR  
+Un champ calculé est un champ dont la valeur n’est pas saisie directement par l’utilisateur, 
+mais déduite automatiquement à partir d’autres champs du modèle.
+Autrement dit, sa valeur est calculée dynamiquement chaque fois qu’elle est nécessaire, 
+plutôt que stockée en base de données.
 
----
+Ces champs sont particulièrement utiles pour effectuer des calculs ou des traitements automatiques,
+par exemple lorsqu’une valeur doit être mise à jour dès qu’un autre champ change.
 
-## Consignes générales
+Imaginons un modèle `Person` qui contient un champ `date_of_birth`.
 
-Toutes les informations nécessaires à la réalisation des exercices sont disponibles dans le cours théorique :
-
-- [Développement d'un module : Héritage, Contraintes et Vues Avancées](https://poesi.esi-bru.be/mod/amanote/view.php?id=781)
-
-Les informations complémentaires sont accessibles via la documentation :
-
-- [Modèle, attributs, méthodes](https://www.odoo.com/documentation/17.0/developer/reference/backend/orm.html)
-- [Les fichiers](https://www.odoo.com/documentation/17.0/developer/reference/backend/data.html)
-
----
-
-## 1. Mise à jour du modèle
-
-### Observateur / Observé
-
-Modifiez la classe `TodoTask` du sous-module `todo_stage` pour que, lors de la mise à jour d'une tâche, si le responsable est modifié :
-
-- la relation avec les membres de l'équipe soit effacée ;
-- le message d'alerte suivant soit affiché : `Please choose a new Team`.
-
-Consultez la [documentation du décorateur `onchange`](https://www.odoo.com/documentation/14.0/developer/reference/addons/orm.html#odoo.api.onchange) pour réaliser cette mise à jour.
-
-### Contrainte
-
-#### Nom d’un tag unique
-
-Consultez la [documentation sur les contraintes SQL](https://www.odoo.com/documentation/14.0/developer/reference/addons/orm.html#odoo.models.BaseModel._sql_constraints).  
-Ajoutez ensuite une contrainte pour que le **nom d’un tag soit unique**.
-
-#### Nom d’une tâche explicite
-
-Consultez la [documentation sur les contraintes de modèle](https://www.odoo.com/documentation/14.0/developer/reference/addons/orm.html#odoo.api.constrains).  
-Ajoutez ensuite une contrainte au modèle `TodoTask` pour que le **nom d’une tâche contienne au minimum 5 caractères**.
-
----
-
-## 2. Importer des données
-
-Lors de l'installation de votre sous-module `todo_stage`, on souhaite charger des données de base dans la base de données.
-
-> 💡 **Attention** : Comme vous allez charger des données dans la base de données sur lesquelles il existe des contraintes, il est possible que les données entrent en conflit avec des données existantes.  
-> Soyez attentif au contenu des messages d’erreurs lors de la mise à jour du module.
-
-### Nettoyer le fichier demo.xml
-
-Nettoyez le fichier `demo/demo.xml` pour qu'il ressemble à ceci :
-
-```xml
-<odoo>
-  <data noupdate="1">
-
-  </data>
-</odoo>
+```python
+date_of_birth = fields.Date(string="Date de naissance")
 ```
 
-Consultez la [documentation sur `noupdate`](https://www.odoo.com/documentation/14.0/reference/data.html) pour connaître l'utilité de cette option.
+On souhaite ajouter un champ calculé `age` qui détermine l’âge actuel 
+de la personne à partir de sa date de naissance.
 
----
-
-### Insérer un tag
-
-Pour insérer une ligne dans la table des `tags`, ajoutez :
-
-```xml
-<record model="todo.task.tag" id="todo_task_tag_01">
-  <field name="name">un joli nom de tag</field>
-</record>
+```python
+age = fields.Integer(string="Âge",compute='_compute_age')
 ```
 
-Ajoutez dans le fichier `demo.xml` les trois tags suivants :
+La valeur de ce champs est calculé par la méthode '_compute_age'
+qui a la structure suivante : 
 
-| model | id | name |
-|--------|----|------|
-| `todo.task.tag` | `todo_task_tag_01` | Technical |
-| `todo.task.tag` | `todo_task_tag_02` | Canceled |
-| `todo.task.tag` | `todo_task_tag_03` | Urgent |
-
-Mettez à jour votre module et vérifiez la présence des nouvelles données.
-
----
-
-### Insérer un partenaire
-
-Pour insérer une ligne dans la table `res.partner` :
-
-```xml
-<record model="res.partner" id="todo_partner_01">
-  <field name="name">un joli nom de partenaire</field>
-</record>
+```python
+def _compute_age(self):
+    today = date.today()
+    for person in self:
+        if person.date_of_birth:
+            birth_date = person.date_of_birth
+            person.age = today.year - birth_date.year - (
+                (today.month, today.day) < (birth_date.month, birth_date.day)
+            )
+        else:
+            person.age = 0
 ```
 
-Ajoutez dans le fichier `demo.xml` les trois partenaires suivants :
+La méthode `_compute_age` doit se déclencher dès que la date de naissance est modifiée,
+ce qui s'implémente via le décorateur `@api.depends('date_of_birth')`.
 
-| model | id | name |
-|--------|----|------|
-| `res.partner` | `todo_partner_01` | Patrick Star |
-| `res.partner` | `todo_partner_02` | Squidward Tentacles |
-| `res.partner` | `todo_partner_03` | Sandy Cheeks |
-
-Seul le champ `name` doit être rempli pour notre module.  
-Les autres champs de `res.partner` seront complétés avec les valeurs par défaut.
-
-Mettez à jour votre module et vérifiez la présence de vos nouvelles données.
-
-> ⚠️ L’étape suivante est plus complexe techniquement.
-
----
-
-### Description d'une tâche
-
-Ajoutez une tâche dont voici les propriétés :
-
-- **name** : Reinstall Odoo
-- **user_id** : rechercher l’id de l’utilisateur `eugene.krabs@he2b.be`
-- **date_deadline** : dans 4 jours
-- **is_done** : faux
-- **effort_estimate** : 5
-- **state** : draft
-- **desc** : Reinstall ODOO and update to 14.0
-- **tag_ids** : Technical
-- **team_ids** : Patrick Star, Squidward Tentacles et Sandy Cheeks
-- **image** : l’image 6
-- **docs** : la page web ci-dessous
-
-```html
-<h2>Installation requirements</h2>
-<ul>
-  <li>postgres</li>
-  <li>python 3.5</li>
-  <li>less</li>
-  <li>WkHtmlToPdf</li>
-</ul>
+```python ins={1}
+@api.depends('date_of_birth')
+def _compute_age(self):
+    today = date.today()
+    for person in self:
+        if person.date_of_birth:
+            birth_date = person.date_of_birth
+            person.age = today.year - birth_date.year - (
+                (today.month, today.day) < (birth_date.month, birth_date.day)
+            )
+        else:
+            person.age = 0
 ```
 
----
+Ainsi, chaque fois qu’on modifie la date de naissance, Odoo recalcule automatiquement 
+la valeur du champ `age`.
 
-#### Remarque 1 : Rechercher la valeur d’un champ
+**Un champ calculé n'est pas stocké en base de données**
 
-```xml
-<field name="user_id" search="[('login','=','eugene.krabs@he2b.be')]"/>
+<Aside icon="magnifier" title="Exercice">
+
+Créez un champ `task_count` dans le modèle `todo.task.tag` qui compte le nombre de tâches associées à chaque tag.
+
+Le champ `task_count` doit être recalculé automatiquement chaque fois que les tâches associées au tag sont modifiées.
+
+Utilisez le décorateur `@api.depends` pour que ce champ se mette à jour dès qu'une tâche est ajoutée ou supprimée de la relation `Many2many`.
+
+</Aside>
+
+Le décorateur `@api.depends` peut être vu comme une implémentation de l'observateur-observé avec
+les champs placés comme paramètre de api.depends() comme Observés et les champs calculés comme Observateurs.
+
+## `@api.onchange`
+
+Le décorateur `@api.onchange` permet de déclencher automatiquement une fonction 
+dès que l’utilisateur modifie un champ dans le formulaire.
+
+Contrairement à `@api.depends`, qui est utilisé pour recalculer des champs en fonction 
+des changements apportés dans la base de données, `@api.onchange` s’exécute avant 
+toute écriture en base de données, ce qui le rend très rapide.
+
+Il est idéal pour valider des saisies en temps réel, pré-remplir d’autres champs ou afficher des messages ou avertissements immédiats
+avant que l’utilisateur ne sauvegarde l’enregistrement.
+
+
+Imaginons un modèle `SaleOrder` avec un champ `order_date` et un champ `delivery_date`.
+
+```python
+order_date = fields.Date(string="Date de commande")
+delivery_date = fields.Date(string="Date de livraison")
 ```
 
-#### Remarque 2 : Insérer une relation
+Pour s’assurer que la date de livraison est postérieure à la date de commande, 
+on peut définir une méthode `_onchange_delivery_date` qui affichera un message 
+d’avertissement en cas d’incohérence.
+En ajoutant le décorateur `@api.onchange('delivery_date')`, la méthode est 
+automatiquement déclenchée dès que le champ `delivery_date` est modifié dans le formulaire.
 
-```xml
-<field name="tag_ids" eval="[(4, ref('todo_task_tag_01'), None)]"></field>
+```python
+@api.onchange('delivery_date')
+def _onchange_delivery_date(self):
+    if self.delivery_date and self.order_date:
+        if self.delivery_date < self.order_date:
+            return {
+                'warning': {
+                    'title': "Date invalide",
+                    'message': "La date de livraison ne peut pas être antérieure à la date de commande."
+                }
+            }
 ```
 
-#### Remarque 3 : Insérer une image
+<Aside icon="magnifier" title="Exercice">
 
-```xml
-<field name="image" type="base64" file="todo_stage/static/img/task04.png"/>
-```
+Modifier la classe `TodoTask` du sous-module `todo_stage` pour que lors de la mise à jour 
+d'une tâche si le responsable est modifié :
+- La relation avec les membres de l'équipe soit effacée.
+- Le message d'alerte suivant soit affiché : `Please choose a new Team`.
 
-#### Remarque 4 : Insérer une page HTML
-
-```xml
-<field name="docs"><![CDATA[
-  <h2>Installation requirements</h2>
-  <ul>
-    <li>postgres</li>
-    <li>python 3.5</li>
-    <li>less</li>
-    <li>WkHtmlToPdf</li>
-  </ul>
-]]></field>
-```
-
----
-
-### Insérer une tâche
-
-Ajoutez la tâche `Reinstall Odoo` à votre fichier `demo.xml`.  
-Ajoutez aussi deux autres tâches avec les statuts `open` et `done`.
-
-Mettez à jour le `manifest` pour importer ces données à l’installation du module.
-
-> 🧩 Pour tester complètement le fichier `demo.xml`, désinstallez puis réinstallez votre module.
-
----
-
-## 3. Solutions
-
-Une solution des exercices est disponible ici :  
-👉 [https://git.esi-bru.be/ERPG5/odoo/exercice05](https://git.esi-bru.be/ERPG5/odoo/exercice05)
-
----
-
-## 4. Pour aller plus loin : Intégrer un module existant
-
-Un module couramment utilisé dans Odoo est le module **mail**, qui ajoute des fonctions de messagerie.
-
-### Étapes
-
-1. Ajoutez la dépendance `mail` dans le `manifest`.
-2. Modifiez l’attribut `_inherit` de la classe `TodoTask` avec un second héritage : `mail.thread`.
-
-Ensuite, modifiez la vue formulaire en ajoutant après la balise `<sheet>` :
-
-```xml
-<div class="oe_chatter">
-  <field name="message_follower_ids" widget="mail_followers"/>
-  <field name="message_ids" widget="mail_thread"/>
-</div>
-```
-
-Mettez à jour votre module et vérifiez la mise à jour de la vue formulaire.
-
-*/}
+</Aside>
