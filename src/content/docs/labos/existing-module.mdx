@@ -1,7 +1,282 @@
 ---
-title: Odoo - Intégration de modules existants
-description: Odoo intégration
+title: Odoo - Intégrer un module existant
+description: Odoo intégration![Description de l'image](../../../assets/work-in-progress.jpeg)
+
 ---
 import { Aside, FileTree, Tabs, TabItem, } from '@astrojs/starlight/components';
 
-![Description de l'image](../../../assets/work-in-progress.jpeg)
+Odoo offre la possibilité de réutiliser facilement les fonctionnalités d’autres modules.  
+Dans cette section, vous allez apprendre à lier les tâches du module `todo_stage`
+à des événements du module `calendar`.
+
+L’objectif est de permettre à chaque tâche de faire référence à un événement du calendrier
+comme une réunion, un rappel ou une quelconque échéance importante.
+
+
+## Le module calendar
+
+Le code source du module `calendar` est disponible sur le 
+[dépôt GitHub officiel d’Odoo](https://github.com/odoo/odoo/tree/18.0/addons/calendar/).
+
+Vous pouvez notamment consulter le fichier 
+[`models/calendar_event.py`](https://github.com/odoo/odoo/blob/18.0/addons/calendar/models/calendar_event.py)
+, qui contient la définition du Business Objects `calendar.event`.
+
+```python title="Extrait du fichier calendar_event.py" {2}
+class Meeting(models.Model):
+    _name = 'calendar.event'
+    _description = "Calendar Event"
+    _order = "start desc"
+    _inherit = ["mail.thread"]
+    _systray_view = 'calendar'
+```
+
+Ce modèle est un excellent exemple pour comprendre la structure et le fonctionnement d’un Business Object Odoo.
+Il va servir de base pour vos activités de **rétro-ingénierie** et 
+vous permettre de mieux comprendre les interactions entre modèles.
+
+<Aside>
+
+En parcourant le code du module `calendar`, vous rencontrerez souvent des instructions comme `self.env[...]`.
+L’objet `env` représente l’environnement Odoo : il donne accès à la base de données, 
+aux modèles et au contexte d’exécution (utilisateur, société,...).
+
+Exemples :
+- `self.env['res.partner']` : permet d’accéder au modèle des contacts;
+- `self.env.user` : représente l’utilisateur actuellement connecté.
+</Aside>
+
+Prenez le temps de lire les méthodes `_default_start` et `_default_stop` de `calendar.event`.
+Ces méthodes définissent les valeurs 
+par défaut du début et de la fin d’un événement de calendrier : 
+
+```python title="Méthodes extraites du fichier calendar_event.py" 
+@api.model
+def _default_start(self):
+    now = fields.Datetime.now()
+    return now + (datetime.min - now) % timedelta(minutes=30)
+
+@api.model
+def _default_stop(self):
+    now = fields.Datetime.now()
+    duration_hours = self.get_default_duration()
+    start = now + (datetime.min - now) % timedelta(minutes=30)
+    return start + timedelta(hours=duration_hours)
+```
+
+Ces méthodes illustrent bien comment Odoo automatise les valeurs par défaut 
+à la création d’un enregistrement.
+
+<Aside icon="magnifier" title="Exercice">
+Analysez la méthode la méthode `_default_partners` extraite du modèle `calendar.event`:
+
+```python
+@api.model
+def _default_partners(self):
+    """ When active_model is res.partner, the current partners should be attendees """
+    partners = self.env.user.partner_id
+    active_id = self._context.get('active_id')
+    if self._context.get('active_model') == 'res.partner' and active_id and active_id not in partners.ids:
+        partners |= self.env['res.partner'].browse(active_id)
+    return partners
+```
+
+À quoi sert cette méthode dans le fonctionnement du module `Calendar` ?
+
+Que fait exactement l’instruction `partners = self.env.user.partner_id` ?
+</Aside>
+
+## Associer un événement à une tâche
+
+Pour pouvoir utiliser le modèle `calendar.event` dans votre module `todo_stage`,  
+il faut d’abord **déclarer une dépendance** vers le module `calendar` 
+dans le fichier `__manifest__.py`.
+
+```python
+'depends': ['todo_app', 'calendar'],
+```
+
+Ensuite, pour relier une tâche à un événement du calendrier, ajoutez dans le modèle 
+`todo.task` le champ suivant :
+
+```python
+event_id = fields.Many2one(
+    'calendar.event',
+    ondelete='cascade',
+    string="Événement lié"
+)
+```
+Cette instruction se décode comme : 
+- `Many2one('calendar.event')` : crée une relation vers le modèle des événements du calendrier.
+- `ondelete='cascade'` : si l’événement est supprimé, le lien est automatiquement supprimé côté tâche.
+- `string="Événement lié"` : libellé affiché dans l’interface.
+
+
+Comme le modèle possède maintenant un nouveau champ, il faut l’ajouter à la vue de formulaire du modèle `todo.task` 
+afin de pouvoir sélectionner un événement existant :
+
+```xml title="extrait de todo_view.xml" ins={40}
+<record id="view_form_todo_task_ui" model="ir.ui.view">
+    <field name="priority">15</field>
+    <field name="model">todo.task</field>
+    <field name="arch" type="xml">
+        <form>
+            <header>
+                <!-- Boutons d'action -->
+                <button name="do_clear_done" type="object"
+                        string="Clear Done" class="oe_highlight"
+                        invisible="[(state,'in',['draft'])]"/>
+                <button string="Set to open" type="object" name="set_to_open"
+                        invisible="[(state,'!=','draft')]" class="oe_edit_only"/>
+                <button string="Set to closed" type="object" name="set_to_closed"
+                        invisible="[(state,'!=','open')]" class="oe_edit_only"/>
+                <button string="Reset" type="object" name="set_to_draft"
+                        invisible="[(state,'=','draft')]" class="oe_edit_only"/>
+                <field name="state" widget="statusbar"/>
+            </header>
+
+            <sheet>
+                <!-- Titre et informations principales -->
+                <div class="oe_title">
+                    <h1><field name="name"/></h1>
+                    <span class="oe_read_only">By </span>
+                    <field name="user_id" class="oe_inline" readonly="1"/>
+                    <span> created on </span>
+                    <field name="date_created" widget="date" readonly="1" class="oe_inline"/>
+                </div>
+
+                <!-- Groupes principaux -->
+                <group name="group_top">
+                    <group name="group_left">
+                        <field name="date_deadline"/>
+                        <field name="effort_estimate"/>
+                        <field name="tag_ids" widget="many2many_tags"/>
+                    </group>
+                    <group name="group_right">
+                        <field name="desc"/>
+                        <field name="image" widget="image" class="oe_avatar"/>
+                        <field name="event_id"/>
+                    </group>
+                </group>
+
+                <!-- Onglets -->
+                <notebook>
+                    <page string="Team" name="team_page">
+                        <field name="team_ids"/>
+                    </page>
+                    <page string="Documentation" name="doc_page">
+                        <field name="docs" widget="html"/>
+                    </page>
+                </notebook>
+            </sheet>
+        </form>
+    </field>
+</record>
+```
+
+Le champ `<field name="event_id"/>` fera apparaître une liste déroulante contenant tous les événements disponibles dans le module `calendar`.
+
+## Appeler une vue du module Calendar
+
+Pour permettre à vos utilisateurs de consulter les événements du calendrier directement depuis 
+le module de gestion de tâches, vous allez ajouter un lien vers la vue du calendrier.
+
+Odoo propose déjà une action qui affiche la liste et la vue calendrier des événements :
+cette action est définie dans [le fichier calendar_views.xml](https://github.com/odoo/odoo/blob/18.0/addons/calendar/views/calendar_views.xml)
+du module `calendar`.
+
+```xml title="Action déjà écrite dans le module calendar"
+<record id="action_calendar_event_type" model="ir.actions.act_window">
+    <field name="name">Meeting Types</field>
+    <field name="res_model">calendar.event.type</field>
+    <field name="view_id" ref="view_calendar_event_type_tree"/>
+</record>
+```
+
+Pour réutiliser cette action dans votre module, ajoutez une nouvelle entrée dans le fichier
+`todo_stage/views/todo_menu.xml` :
+
+```xml
+<menuitem
+    id="menu_calendar_event"
+    name="Événements"
+    parent="todo_app.configuration_menu"
+    action="calendar.action_calendar_event"/>
+```
+
+Cela ajoutera un sous-menu “Événements” dans le menu "Configuration" de votre application `todo_stage`.
+Ce lien ouvrira automatiquement la vue standard du calendrier Odoo, 
+permettant d’afficher ou de gérer les événements existants.
+
+## Créer un événement
+
+Pour aller plus loin, on peut automatiser la création d’un **événement de calendrier** chaque fois qu’une nouvelle tâche est ajoutée.  
+Cela permet de **lier immédiatement une tâche à un événement**, sans intervention manuelle de l’utilisateur.
+
+
+Redéfinir la méthode create dans le modèle
+
+<Aside>
+
+La méthode **`create`** de `model.Model` est utilisée par Odoo pour **insérer 
+un nouvel enregistrement** dans la base de données.  
+Elle est **héritée par tous les Business Objects**, ce qui permet aux développeurs 
+de **personnaliser la logique de création** d’un objet avant ou après son enregistrement.
+
+</Aside>
+
+Dans le modèle `todo.task`, on peut **surcharger** la méthode `create` pour y intégrer 
+la création automatique d’un événement lié dans le calendrier.
+
+```python title="extrait de todo_task_model.py" ins={3,15-36}
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
+from datetime import datetime, timedelta
+import logging
+
+_logger = logging.getLogger(__name__)
+
+class TodoTask(models.Model):
+    _name = 'todo.task'
+    _inherit = ['todo.task']
+
+    # attributs et méthodes développées précédemment...
+    # ...
+
+    @api.model
+    def create(self, vals):
+        # Crée la tâche normalement
+        task = super(TodoTask, self).create(vals)
+
+       # Crée un événement lié dans le calendrier
+        start_time = datetime.now()
+        stop_time = start_time + timedelta(hours=1)
+        
+        # Crée un événement lié dans le calendrier
+        event_vals = {
+            'name': f"Tâche : {task.name}",
+            'start': start_time,
+            'stop': stop_time,
+            'duration': 1.0,  # durée optionnelle en heures
+        }
+        event = self.env['calendar.event'].create(event_vals)
+
+        # Lie l'événement à la tâche
+        task.event_id = event.id
+
+        return task
+```
+On peut noter dans cette réécriture :
+- `super(TodoTask, self).create(vals)` : appelle la création classique de la tâche;
+- `self.env['calendar.event'].create(event_vals)` : crée un événement dans le calendrier avec le titre de la tâche et une durée par défaut d’une heure;
+- `task.event_id = event.id` : associe l’événement nouvellement créé à la tâche via le champ `Many2one`.
+- `@api.model` : ce décorateur indique que la méthode est appelée sur le modèle lui-même et non sur un enregistrement précis.
+Dans le cas de `create`, `self` représente donc un `recordset` **vide** du modèle, et non une tâche existante.
+Cela permet à Odoo de gérer correctement la création d’un nouvel enregistrement.
+
+<Aside icon="magnifier" title="Exercice">
+
+Adaptez la méthode pour que `stop_datetime` soit calculé à partir du champ `due_date` de la tâche.
+Ensuite, proposez une contrainte pour garantir que `start_datetime` soit antérieur à `stop_datetime`.
+
+</Aside>

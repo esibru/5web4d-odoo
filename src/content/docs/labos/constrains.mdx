@@ -25,7 +25,7 @@ qu'aucune valeur du champ ne soit dupliquée dans la base de données.
 Dans la classe produit ci-dessous, une contrainte SQL est utilisée pour s'assurer 
 que chaque code de produit soit unique dans la base de données.
 
-```python ins={8,9,10}
+```python {8-10}
 class Product(models.Model):
     _name = 'product.product'
 
@@ -69,7 +69,7 @@ En reprenant l'exemple de la classe produit, on peut écritre une contrainte API
 pour vérifier l'unicité du code produit avant de valider l'enregistrement.
 Si un autre produit avec le même code existe, une erreur de validation est levée.
 
-```python ins={8,9,10,11,12}
+```python {8-12}
 class Product(models.Model):
     _name = 'product.product'
 
