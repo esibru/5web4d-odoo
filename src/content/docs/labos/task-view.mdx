@@ -90,47 +90,49 @@ En étudiant la vue formulaire d'une tâche proposée ci-dessous :
             <header>
                 <!-- Boutons d'action -->
                 <button name="do_clear_done" type="object"
-                        string="Clear Done" class="oe_highlight"
-                        invisible="[(state,'in',['draft'])]"/>
+                    string="Clear Done" class="oe_highlight"
+                    invisible="state == 'draft'" />
                 <button string="Set to open" type="object" name="set_to_open"
-                        invisible="[(state,'!=','draft')]" class="oe_edit_only"/>
+                    invisible="state != 'draft'" class="oe_edit_only" />
                 <button string="Set to closed" type="object" name="set_to_closed"
-                        invisible="[(state,'!=','open')]" class="oe_edit_only"/>
+                    invisible="state != 'open'" class="oe_edit_only" />
                 <button string="Reset" type="object" name="set_to_draft"
-                        invisible="[(state,'=','draft')]" class="oe_edit_only"/>
-                <field name="state" widget="statusbar"/>
+                    invisible="state == 'draft'" class="oe_edit_only" />
+                <field name="state" widget="statusbar" />
             </header>
 
             <sheet>
                 <!-- Titre et informations principales -->
                 <div class="oe_title">
-                    <h1><field name="name"/></h1>
+                    <h1>
+                        <field name="name" />
+                    </h1>
                     <span class="oe_read_only">By </span>
-                    <field name="user_id" class="oe_inline" readonly="1"/>
+                    <field name="user_id" class="oe_inline" readonly="1" />
                     <span> created on </span>
-                    <field name="date_created" widget="date" readonly="1" class="oe_inline"/>
+                    <field name="date_created" widget="date" readonly="1" class="oe_inline" />
                 </div>
 
                 <!-- Groupes principaux -->
                 <group name="group_top">
                     <group name="group_left">
-                        <field name="date_deadline"/>
-                        <field name="effort_estimate"/>
-                        <field name="tag_ids" widget="many2many_tags"/>
+                        <field name="date_deadline" />
+                        <field name="effort_estimate" />
+                        <field name="tag_ids" widget="many2many_tags" />
                     </group>
                     <group name="group_right">
-                        <field name="desc"/>
-                        <field name="image" widget="image" class="oe_avatar"/>
+                        <field name="desc" />
+                        <field name="image" widget="image" class="oe_avatar" />
                     </group>
                 </group>
 
                 <!-- Onglets -->
                 <notebook>
                     <page string="Team" name="team_page">
-                        <field name="team_ids"/>
+                        <field name="team_ids" />
                     </page>
                     <page string="Documentation" name="doc_page">
-                        <field name="docs" widget="html"/>
+                        <field name="docs" widget="html" />
                     </page>
                 </notebook>
             </sheet>
@@ -140,6 +142,7 @@ En étudiant la vue formulaire d'une tâche proposée ci-dessous :
 ```
 
 Finalement, insérez cette vue dans votre sous-module et mettez à jour 
-celui-ci afin qu’elle soit active dans Odoo.
+celui-ci afin qu’elle soit active dans Odoo. Pensez à développer les méthodes
+a associer aux boutons.
 
 </Aside>
